@@ -439,10 +439,16 @@ function mountTuner(el,s,done){
       cl.textContent=ok?"In tune ✓ hold it…":sm<0?`Too low (${Math.round(-sm)}¢). Tighten a tiny bit.`:`Too high (${Math.round(sm)}¢). Loosen a tiny bit.`;
       if(ok&&si===last){if(++hold===20&&!got.has(si)){got.add(si);tunes.children[si].classList.add("done");ding();
         say(got.size<6?`${SN[si]} string locked in. ${6-got.size} to go.`:"All six in tune. Proper.");
-        if(got.size===6){counters.tuned++;st.tunedOn=today();save();checkBadges();if(done)btn(row,"Next","big",done)}}}else hold=0;last=si})});
+        if(got.size===6){counters.tuned++;st.tunedOn=today();save();checkBadges();off&&off();off=null;if(done){btn(row,"Next","big",done);autoNext(row,done)}}}}else hold=0;last=si})});
   if(done)btn(row,"Already tuned","ghost",()=>{st.tunedOn=today();save();done()});
+  if(an)go.click(); // mic already allowed this session: start listening straight away
   cleanup.push(()=>off&&off());
 }
+
+// hands-free helpers: with the mic on, steps finish and move on by themselves
+const hears=c=>{if(level()<.01)return false;const ch=chroma();if(!ch)return false;return chordScore(ch,c)>.5&&sameChord(bestChord(ch,Object.keys(CH)).c,c)};
+function autoNext(row,done,secs=3){if(!an||!done)return;let n=secs;const t=h("span","mute",`Next in ${n}…`);t.style.fontWeight="900";row.append(t);
+  const iv=setInterval(()=>{n--;if(!t.isConnected){clearInterval(iv);return}if(n<=0){clearInterval(iv);done()}else t.textContent=`Next in ${n}…`},1000);cleanup.push(()=>clearInterval(iv))}
 
 // a sequence of single notes (riffs, drills, string checks); the mic checks each one
 function mountNotes(el,s,done){
@@ -454,7 +460,7 @@ function mountNotes(el,s,done){
     if(dd)dd.innerHTML=dia(s.dia,seq[Math.min(i,seq.length-1)][0])}
   draw();
   const want=()=>OPEN_MIDI[seq[i][0]]+seq[i][1];
-  function adv(){i++;counters.notes++;draw();if(i>=seq.length){off&&off();off=null;ear.hidden=true;row.innerHTML="";say(s.win||rnd(["Clean run.","Lovely.","That's playing guitar, that."]));ding();btn(row,"Next","big",done)}}
+  function adv(){i++;counters.notes++;draw();if(i>=seq.length){off&&off();off=null;ear.hidden=true;row.innerHTML="";say(s.win||rnd(["Clean run.","Lovely.","That's playing guitar, that."]));ding();btn(row,"Next","big",done);autoNext(row,done)}}
   btn(row,"🔊 Hear note","ghost",()=>pluck(440*2**((want()-69)/12),null,.5));
   const manual=btn(row,"Played it","big",adv);
   (async()=>{if(await ears()){ear.hidden=false;ear.classList.add("live");et.textContent="Listening… play the yellow note";manual.textContent="Skip";manual.className="ghost";let good=0,bad=0,quiet=true;
@@ -469,7 +475,7 @@ function mountNotes(el,s,done){
 function mountChordCheck(el,s,done){
   const c=s.c;el.innerHTML=`<div class="now"><div class="cname">${label(c)}</div>${dia(c)}</div><div class="body">${s.t||"Strum all the strings that aren't ✕. Let it ring."}<small>I'm listening for the whole chord.</small></div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div>`;
   const ear=el.querySelector(".ear"),et=el.querySelector("[data-e]"),row=el.querySelector(".row");let off=null,fin=false;
-  const finish=()=>{if(fin)return;fin=true;off&&off();ear.hidden=true;row.innerHTML="";ding();say(rnd(["That's the one.","Sounds right to me.","Chord unlocked, bruv."]));if(done)btn(row,"Next","big",done)};
+  const finish=()=>{if(fin)return;fin=true;off&&off();ear.hidden=true;row.innerHTML="";ding();say(rnd(["That's the one.","Sounds right to me.","Chord unlocked, bruv."]));if(done){btn(row,"Next","big",done);autoNext(row,done)}};
   btn(row,"🔊 Hear "+label(c),"ghost",()=>strum(c));
   const m=btn(row,"Sounded right","big",finish);
   (async()=>{if(await ears()){ear.hidden=false;ear.classList.add("live");et.textContent="Strum it…";m.className="ghost";let hits=0,miss=0;
@@ -479,15 +485,30 @@ function mountChordCheck(el,s,done){
   cleanup.push(()=>off&&off());
 }
 
-// strum trainer: lane of arrows, count-in, clicks, guide strums, mic timing score
+// muscle-memory reps: the mic counts each time the chord rings out after a lift (silence)
+function mountReps(el,s,done){
+  const c=s.c,need=s.n||5;let n=0,off=null,quiet=true,quietMs=0,hits=0,last=performance.now(),fin=false;
+  el.innerHTML=`<div class="now"><div class="cname">${label(c)}</div>${dia(c)}</div><div class="body">Muscle memory: <b>lift your hand off, put the shape back, strum.</b> ${need} times.<small>Land all fingers at once. Let it go quiet between reps and I'll count them.</small></div>
+    <div class="target" data-n style="font-size:52px">0 / ${need}</div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div>`;
+  const N=el.querySelector("[data-n]"),ear=el.querySelector(".ear"),et=el.querySelector("[data-e]"),row=el.querySelector(".row");
+  const count=()=>{if(fin)return;n++;N.textContent=`${n} / ${need}`;click(n===need);if(n>=need){fin=true;off&&off();ear.hidden=true;row.innerHTML="";ding();say("Shape's locked in.");if(s.learn&&!known[s.learn]){known[s.learn]=1;save();toast(`New chord unlocked: ${label(s.learn)} 🎸`)}btn(row,"Next","big",done);autoNext(row,done)}};
+  const tap=btn(row,"Did one","big",count);
+  (async()=>{if(await ears()){ear.hidden=false;ear.classList.add("live");et.textContent="Listening… lift, place, strum";tap.className="ghost";
+    off=listen(()=>{const t=performance.now(),dt=t-last;last=t;const l=level();
+      if(l<.006){quietMs+=dt;if(quietMs>350){quiet=true;hits=0}return}quietMs=0;
+      if(quiet&&hears(c)){if(++hits>4){quiet=false;hits=0;et.textContent="✓ Rep "+(n+1);count()}}})}})();
+  cleanup.push(()=>off&&off());
+}
+
+// strum trainer: lane of arrows, count-in, clicks, guide strums, mic timing score. With the mic, your first strum starts it.
 function mountStrum(el,s,done){
   const P=PATTERNS[s.pat],chords=s.chords||["open"],bars=s.bars||8,sl=P.slots.length;
-  let bpm=s.bpm||60,timer=null,slot=0,bar=-1,onsets=[],expected=[],off=null,micOn=false;const guideOn=s.guide??cfg.guide;
+  let bpm=s.bpm||60,timer=null,slot=0,bar=-1,onsets=[],expected=[],off=null,armOff=null,micOn=false;const guideOn=s.guide??cfg.guide;
   const cnt=P.beats===6?["1","2","3","4","5","6"]:["1","&","2","&","3","&","4","&"],rid="bpm"+Math.random().toString(36).slice(2,7);
   el.innerHTML=`<div class="body">${s.t?s.t+"<br>":""}<b>${P.name}</b><small>${P.tip}</small></div>
    <div class="now" style="min-height:110px"><div class="cname" data-c style="font-size:52px"></div><div data-d></div></div><div class="mute" style="text-align:center;font-weight:900" data-n></div>
    <div class="lane"><div class="slots" style="grid-template-columns:repeat(${sl},1fr)"></div><div class="counts" style="grid-template-columns:repeat(${sl},1fr)">${cnt.map(x=>`<span>${x}</span>`).join("")}</div></div>
-   <div class="mute" style="text-align:center" data-b>${bars} bars · 1 bar count-in</div><div class="mute" style="text-align:center;font-weight:900;font-size:16px" data-t></div>
+   <div class="mute" style="text-align:center;font-weight:900" data-b>${bars} bars · 1 bar count-in</div><div class="mute" style="text-align:center;font-weight:900;font-size:16px" data-t></div>
    <label class="mute" for="${rid}">Speed: <b data-v>${bpm}</b> bpm</label><input type="range" id="${rid}" min="40" max="140" value="${bpm}"><div class="row"></div>`;
   const q=k=>el.querySelector(k),slots=q(".slots"),row=q(".row");
   [...P.slots].forEach(x=>slots.append(h("div","slot"+(x==="."?" rest":""),x==="D"?"↓":x==="U"?"↑":"·")));
@@ -499,13 +520,13 @@ function mountStrum(el,s,done){
     if(beatSlot&&(countIn||!micOn))click(slot===0);
     if(x!=="."&&!countIn){if(guideOn&&!micOn)strum(chordAt(bar),x==="D");expected.push(performance.now())}
     slot++;if(slot>=sl){slot=0;bar++;q("[data-b]").textContent=`Bar ${Math.min(bar+1,bars)} of ${bars}`;show();
-      if(bar>=bars){stop();score();row.innerHTML="";btn(row,"Again","ghost",()=>{build();start()});if(done)btn(row,"Next","big",done);ding();say(rnd(["Locked in the groove.","Bruv is nodding.","That's rhythm, that."]));addXp(3)}}}
+      if(bar>=bars){stop();score();row.innerHTML="";btn(row,"Again","ghost",()=>{build();start()});if(done){btn(row,"Next","big",done);autoNext(row,done,4)}ding();say(rnd(["Locked in the groove.","Bruv is nodding.","That's rhythm, that."]));addXp(3)}}}
   function score(){const tt=q("[data-t]");if(!micOn||expected.length<4){tt.textContent="";return}
     const offs=onsets.map(o=>{let b=1e9;expected.forEach(e=>{if(Math.abs(o-e)<Math.abs(b))b=o-e});return b}).filter(x=>Math.abs(x)<ms()*.9);
     if(offs.length<3){tt.textContent="I couldn't hear many strums. Strum a bit louder or move the phone closer.";return}
     const sorted=[...offs].sort((a,b)=>a-b),med=sorted[sorted.length>>1],good=offs.filter(o=>Math.abs(o-med)<80).length,pct=Math.round(good/Math.max(expected.length,offs.length)*100);
     tt.textContent=`On time: ${pct}%`+(pct>=80?" 🔥":pct>=55?" (getting there)":" (try it slower)");if(pct>=80){counters.groove++;save();checkBadges()}}
-  async function start(){ctx();slot=0;bar=-1;onsets=[];expected=[];q("[data-t]").textContent="";q("[data-b]").textContent="Count-in…";
+  async function start(){armOff&&armOff();armOff=null;ctx();slot=0;bar=-1;onsets=[];expected=[];q("[data-t]").textContent="";q("[data-b]").textContent="Count-in…";
     micOn=s.listen!==false&&await ears();if(micOn){let prev=0,lastOn=0,recent=[],good=0,bad=0;off=listen(()=>{const l=level(),t=performance.now();
       if(l>.02&&l>prev*1.8&&t-lastOn>110){onsets.push(t);lastOn=t;
         // live reaction: compare this strum's offset with the player's own recent average (cancels mic latency)
@@ -515,49 +536,66 @@ function mountStrum(el,s,done){
               else{bad++;good=0;if(bad===4){say(o-med>0?"Dragging a bit. Push forward.":"Rushing. Chill, ride the click.");bad=0}}}}}}
       prev=prev*.6+l*.4})}
     tick();timer=setInterval(tick,ms());go.textContent="■ Stop";go.classList.add("stop")}
-  function stop(){clearInterval(timer);timer=null;off&&off();off=null;go.textContent="▶ Start";go.classList.remove("stop");[...slots.children].forEach(d=>d.classList.remove("on"))}
+  function stop(){clearInterval(timer);timer=null;off&&off();off=null;if(go){go.textContent="▶ Start";go.classList.remove("stop")}[...slots.children].forEach(d=>d.classList.remove("on"))}
+  // hands-free: wait for one strum, then count in
+  async function arm(){if(s.listen===false||!await ears()||timer)return;q("[data-b]").textContent="🎸 Strum once when you're ready. I'll count you in.";let prev=0,quietSince=0,t0=performance.now();
+    armOff=listen(()=>{const l=level(),t=performance.now();if(t-t0<800){prev=l;return}if(l>.03&&l>prev*2){armOff();armOff=null;setTimeout(()=>{if(!timer&&el.isConnected)start()},900)}prev=prev*.6+l*.4})}
   let go;function build(){row.innerHTML="";go=btn(row,"▶ Start","big",()=>timer?stop():start());
     btn(row,"🔊 Hear it","ghost",()=>{let k=0;const c=chordAt(0);const iv=setInterval(()=>{const x=P.slots[k];if(x!==".")strum(c,x==="D");[...slots.children].forEach((d,j)=>d.classList.toggle("on",j===k));if(++k>=sl){clearInterval(iv);setTimeout(()=>[...slots.children].forEach(d=>d.classList.remove("on")),ms())}},ms())});
     if(done&&s.skip!==false)btn(row,"Skip","ghost",done)}
-  build();
+  build();arm();
   q("input[type=range]").oninput=e=>{bpm=+e.target.value;q("[data-v]").textContent=bpm;if(timer){clearInterval(timer);timer=setInterval(tick,ms())}};
   el.append(h("p","mute","With the mic on, Bruv goes quiet after the count-in and scores your timing. Without it, he strums along so you can copy him."));
-  cleanup.push(()=>{clearInterval(timer);off&&off()});
+  cleanup.push(()=>{clearInterval(timer);off&&off();armOff&&armOff()});
 }
 
-// change race: hold A, on GO switch to B; the mic stops the clock
+// change race. Hands-free with the mic: strum the first chord, wait for GO, switch; rounds run back to back
 function mountRace(el,s,done){
-  const pairs=s.pairs;let race=null,raf,off=null,rounds=0;const need=s.rounds||3;
-  el.innerHTML=`<div class="body"><small>Hold the first chord. Tap Ready. On GO, switch and strum. Goal: under 2 seconds, clean.</small></div><div class="mute" style="text-align:center;font-weight:900" data-l>Get ready</div><div class="target" data-g>—</div><div class="vis" data-d></div><div class="time" data-t>0.00s</div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div><div class="best" data-b></div>`;
-  const q=k=>el.querySelector(k),row=q(".row"),ear=q(".ear");
+  const pairs=s.pairs;let race=null,raf,off=null,rounds=0,goT=null,nextT=null,auto=false;const need=s.rounds||3;
+  el.innerHTML=`<div class="body"><small>Hold the first chord. On GO, switch and strum. Goal: under 2 seconds, clean.</small></div><div class="mute" style="text-align:center;font-weight:900" data-l>Get ready</div><div class="target" data-g>—</div><div class="vis" data-d></div><div class="time" data-t>0.00s</div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div><div class="best" data-b></div>`;
+  const q=k=>el.querySelector(k),row=q(".row"),ear=q(".ear"),et=q("[data-e]");
   const drawB=()=>q("[data-b]").innerHTML=pairs.map(p=>{const v=bests[p.join("→")];return `<span>${label(p[0])} → ${label(p[1])}</span><b style="color:${v&&v<2?"var(--good)":"var(--ink)"}">${v?v.toFixed(2)+"s":"—"}</b>`}).join("");drawB();
-  function end(secs){cancelAnimationFrame(raf);off&&off();off=null;ear.hidden=true;const k=race.p.join("→");secs=Math.max(.2,secs);q("[data-t]").textContent=secs.toFixed(2)+"s";logRace(secs);
+  const stopListen=()=>{off&&off();off=null};
+  function end(secs){cancelAnimationFrame(raf);stopListen();const k=race.p.join("→");secs=Math.max(.2,secs);q("[data-t]").textContent=secs.toFixed(2)+"s";logRace(secs);
     if(!bests[k]||secs<bests[k]){bests[k]=secs;save();say("New best! +5 ⭐");addXp(5);ding()}else{say(secs<2?"Under 2. Proper.":"Slow and clean beats fast and messy.");addXp(1)}
-    drawB();race=null;rounds++;b.textContent="Next round";if(rounds===need&&done)btn(row,"Next","big",done)}
-  const b=btn(row,"Start round","big",async()=>{
-    if(!race){const p=rnd(pairs);race={p,stage:0};q("[data-l]").textContent="Hold";q("[data-g]").textContent=label(p[0]);q("[data-d]").innerHTML=dia(p[0]);q("[data-t]").textContent="0.00s";b.textContent="Ready";strum(p[0]);return}
-    if(race.stage===0){race.stage=1;q("[data-l]").textContent="GO! Switch to";q("[data-g]").textContent=label(race.p[1]);q("[data-d]").innerHTML=dia(race.p[1]);click(true);
-      race.t=performance.now();const loop=()=>{if(!race)return;q("[data-t]").textContent=((performance.now()-race.t)/1000).toFixed(2)+"s";raf=requestAnimationFrame(loop)};loop();b.textContent="Done (if I miss it)";
-      if(await ears()&&race){ear.hidden=false;ear.classList.add("live");q("[data-e]").textContent="Listening for "+label(race.p[1])+"…";let hits=0;const pool=Object.keys(CH),tgt=race.p[1];
-        off=listen(()=>{if(!race||level()<.01)return;const ch=chroma();if(!ch)return;const bc=bestChord(ch,pool);
-          if(chordScore(ch,tgt)>.5&&sameChord(bc.c,tgt)){if(++hits>4)end((performance.now()-race.t)/1000-.08)}else hits=Math.max(0,hits-1)})}
-      return}
+    drawB();race=null;rounds++;b.textContent="Next round";
+    if(rounds===need&&done){btn(row,"Next","big",done);autoNext(row,done,4);return}
+    if(auto){et.textContent="Next round in a sec…";nextT=setTimeout(newRound,2200)}}
+  function goNow(){if(!race)return;race.stage=1;q("[data-l]").textContent="GO! Switch to";q("[data-g]").textContent=label(race.p[1]);q("[data-d]").innerHTML=dia(race.p[1]);click(true);
+    race.t=performance.now();const loop=()=>{if(!race)return;q("[data-t]").textContent=((performance.now()-race.t)/1000).toFixed(2)+"s";raf=requestAnimationFrame(loop)};loop();b.textContent="Done (if I miss it)";
+    if(an){et.textContent="Listening for "+label(race.p[1])+"…";let hits=0;const tgt=race.p[1];stopListen();
+      off=listen(()=>{if(!race)return;if(hears(tgt)){if(++hits>4)end((performance.now()-race.t)/1000-.08)}else hits=Math.max(0,hits-1)})}}
+  function newRound(){if(!el.isConnected)return;const p=rnd(pairs);race={p,stage:0};q("[data-l]").textContent="Hold";q("[data-g]").textContent=label(p[0]);q("[data-d]").innerHTML=dia(p[0]);q("[data-t]").textContent="0.00s";
+    if(!auto){b.textContent="Ready";strum(p[0]);return}
+    b.textContent="GO now";et.textContent=`Strum ${label(p[0])} and hold it…`;let hits=0;stopListen();
+    off=listen(()=>{if(!race||race.stage)return;if(hears(p[0])){if(++hits>6){stopListen();et.textContent="Nice. Wait for it…";goT=setTimeout(goNow,900+Math.random()*1600)}}else hits=Math.max(0,hits-1)})}
+  const b=btn(row,"Start round","big",()=>{
+    if(!race){newRound();return}
+    if(race.stage===0){clearTimeout(goT);stopListen();goNow();return}
     end((performance.now()-race.t)/1000)});
   if(done)btn(row,"Skip","ghost",done);
-  cleanup.push(()=>{cancelAnimationFrame(raf);off&&off();race=null});
+  (async()=>{if(await ears()&&el.isConnected){auto=true;ear.hidden=false;ear.classList.add("live");newRound()}})();
+  cleanup.push(()=>{cancelAnimationFrame(raf);stopListen();clearTimeout(goT);clearTimeout(nextT);race=null});
 }
 
-// one-minute changes: how many clean switches in 60 seconds
+// one-minute changes. With the mic, your first strum of chord A starts the clock and every clean switch is counted for you
 function mountOneMin(el,s,done){
-  const [a,b]=s.pair,k=a+"-"+b;let n=0,t=null,left=60,shown=false;
-  el.innerHTML=`<div class="body"><small>Switch back and forth for 60 seconds, one strum per chord. Tap the big button every time you land one cleanly. Messy doesn't count.</small></div>
-   <div class="now">${dia(a)}<div class="cname" style="font-size:36px">⇄</div>${dia(b)}</div><div class="time" data-t>60</div><div class="target" data-n style="font-size:48px">0</div><div class="row"></div><p class="mute" style="text-align:center" data-b>Best: ${onemin[k]??"—"}</p>`;
-  const row=el.querySelector(".row"),T=el.querySelector("[data-t]"),N=el.querySelector("[data-n]");
-  const go=btn(row,"Start 60 seconds","big",()=>{if(t){n++;N.textContent=n;return}ctx();click(true);n=0;N.textContent=0;left=60;T.textContent=60;go.textContent="Changed! (tap)";go.classList.add("gold");
-    t=setInterval(()=>{left--;T.textContent=left;if(left<=3&&left>0)click(false);if(left<=0){clearInterval(t);t=null;click(true);go.textContent="Go again";go.classList.remove("gold");
+  const [a,b]=s.pair,k=a+"-"+b;let n=0,t=null,left=60,shown=false,off=null,cur=null,hits=0;
+  el.innerHTML=`<div class="body"><small>Switch back and forth for 60 seconds, one strum per chord. Messy doesn't count.</small></div>
+   <div class="now">${dia(a)}<div class="cname" style="font-size:36px">⇄</div>${dia(b)}</div><div class="time" data-t>60</div><div class="target" data-n style="font-size:48px">0</div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div><p class="mute" style="text-align:center" data-b>Best: ${onemin[k]??"—"}</p>`;
+  const row=el.querySelector(".row"),T=el.querySelector("[data-t]"),N=el.querySelector("[data-n]"),ear=el.querySelector(".ear"),et=el.querySelector("[data-e]");
+  const bump=()=>{n++;N.textContent=n};
+  function begin(){if(t)return;ctx();click(true);n=0;N.textContent=0;left=60;T.textContent=60;go.textContent="Changed! (tap)";go.classList.add("gold");if(an)et.textContent="Go! I'm counting your changes.";
+    t=setInterval(()=>{left--;T.textContent=left;if(left<=3&&left>0)click(false);if(left<=0){clearInterval(t);t=null;off&&off();off=null;click(true);go.textContent="Go again";go.classList.remove("gold");
       const pb=onemin[k]==null||n>onemin[k];if(pb){onemin[k]=n;save();checkBadges()}el.querySelector("[data-b]").textContent="Best: "+onemin[k];say(pb?`${n} changes. New record! +5 ⭐`:`${n} changes. Record's ${onemin[k]}.`);addXp(pb?5:2);
-      if(done&&!shown){shown=true;btn(row,"Next","big",done)}}},1000)});
-  cleanup.push(()=>clearInterval(t));
+      if(done&&!shown){shown=true;btn(row,"Next","big",done);autoNext(row,done,5)}}},1000)}
+  // listen: count a change each time the heard chord flips between a and b
+  function arm(){if(!an)return;ear.hidden=false;ear.classList.add("live");et.textContent=`Strum ${label(a)} to start the clock.`;cur=null;hits=0;off&&off();
+    off=listen(()=>{const h1=hears(a),h2=!h1&&hears(b),c=h1?a:h2?b:null;if(!c){hits=0;return}
+      if(c!==cur){if(++hits>4){hits=0;if(!t&&c===a&&cur===null){cur=a;begin();return}if(t&&cur!==null){cur=c;bump()}}}else hits=0})}
+  const go=btn(row,"Start 60 seconds","big",()=>{if(t){bump();return}if(an){arm();cur=a;begin()}else begin()});
+  (async()=>{if(await ears()&&el.isConnected){arm();go.textContent="Or tap to start"}})();
+  cleanup.push(()=>{clearInterval(t);off&&off()});
 }
 
 // ear training
@@ -628,7 +666,7 @@ function learnChord(c,intro){const ch=CH[c],steps=[];
   if(m.length)steps.push({type:"info",vis:"dia:"+c,t:`Don't play the <b>${m.join(" and ")}</b> string${m.length>1?"s":""}.`,h:"Start your strum from the first string without a ✕. Aim, don't slap."});
   steps.push({type:"notes",dia:c,t:"Now pluck each string on its own, thickest to thinnest.",h:"Buzz = press harder or closer to the fret. Dead thud = another finger is leaning on it: arch more.",notes:ch.f.map((f,i)=>[i,f]).filter(x=>x[1]>=0)});
   steps.push({type:"chordcheck",c});
-  steps.push({type:"info",vis:"dia:"+c,t:"Muscle memory time: lift your hand off, shake it, put the shape back. <b>Do it 5 times.</b>",h:"Try to land all fingers at once, not one by one. Slow is fine.",ok:"Did 5",learn:c});
+  steps.push({type:"reps",c,n:5,learn:c});
   return steps}
 
 const UNITS=[
@@ -799,7 +837,7 @@ const EASY={G:"Gmini",C:"Cmaj7",F:known=>known.Fmini?"Fmini":"Fmaj7"};
 const songChords=prog=>prog.map(c=>{if(!cfg.easy||known[c]||!EASY[c])return c;const e=EASY[c];return typeof e==="function"?e(known):e});
 
 /* ================= runners ================= */
-const MOUNT={info:mountInfo,quiz:mountQuiz,tuner:mountTuner,notes:mountNotes,chordcheck:mountChordCheck,strum:mountStrum,race:mountRace,onemin:mountOneMin,ear:mountEar};
+const MOUNT={reps:mountReps,info:mountInfo,quiz:mountQuiz,tuner:mountTuner,notes:mountNotes,chordcheck:mountChordCheck,strum:mountStrum,race:mountRace,onemin:mountOneMin,ear:mountEar};
 function runLesson(L){
   let i=0;const steps=L.steps.map(s=>s.song?{...s,chords:songChords(s.chords)}:s);openSheet();
   say(rnd(["Let's go.","Fingers ready?","No rush. Let's learn."]));
