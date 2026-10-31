@@ -319,19 +319,24 @@ function triad(rootMidi,minor){const t=ctx().currentTime+.02;[0,minor?3:4,7,12].
 let an=null,tbuf,fbuf,micDenied=false,micStream=null;
 async function ears(){
   if(an)return true;if(micDenied)return false;
-  try{const a=ctx(),mic=micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  try{if(!navigator.mediaDevices?.getUserMedia)throw {name:"NoSupport"};
+    const a=ctx(),mic=micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    if(a.state!=="running")await a.resume();
     const src=a.createMediaStreamSource(mic);an=a.createAnalyser();an.fftSize=8192;an.smoothingTimeConstant=0;src.connect(an);
+    // Safari only processes nodes that feed the speakers, so route the analyser into a silent gain
+    const mute=a.createGain();mute.gain.value=0;an.connect(mute).connect(a.destination);
     tbuf=new Float32Array(an.fftSize);fbuf=new Float32Array(an.frequencyBinCount);return true}
-  catch(e){micDenied=true;toast("No mic, so I'll trust your taps. You can allow the mic in your browser settings.");return false}
+  catch(e){if(e?.name==="NotAllowedError")micDenied=true;
+    toast(e?.name==="NotAllowedError"?"Mic is blocked. Safari: tap aA → Website Settings → Microphone → Allow, then reload.":e?.name==="NoSupport"?"This browser can't use the mic. Open the link in Safari.":"Couldn't start the mic ("+(e?.name||"error")+"). Close other apps using it and try again.");return false}
 }
 function level(){an.getFloatTimeDomainData(tbuf);let r=0;for(let i=tbuf.length-1024;i<tbuf.length;i++)r+=tbuf[i]*tbuf[i];return Math.sqrt(r/1024)}
 function pitch(){
   an.getFloatTimeDomainData(tbuf);const N=4096,b=tbuf.subarray(tbuf.length-N);
-  let rms=0;for(let i=0;i<N;i++)rms+=b[i]*b[i];rms=Math.sqrt(rms/N);if(rms<.008)return null;
+  let rms=0;for(let i=0;i<N;i++)rms+=b[i]*b[i];rms=Math.sqrt(rms/N);if(rms<.003)return null;
   const sr=ac.sampleRate,minL=Math.floor(sr/1000),maxL=Math.floor(sr/70),c=new Float32Array(maxL+2);
   for(let l=minL;l<=maxL+1;l++){let s=0,e1=0,e2=0;for(let i=0;i<N-l;i+=2){s+=b[i]*b[i+l];e1+=b[i]*b[i];e2+=b[i+l]*b[i+l]}c[l]=s/Math.sqrt(e1*e2+1e-12)}
   let best=-1,bl=0;for(let l=minL+1;l<=maxL;l++)if(c[l]>c[l-1]&&c[l]>=c[l+1]&&c[l]>best)best=c[l],bl=l;
-  if(best<.85)return null;
+  if(best<.8)return null;
   for(let l=minL+1;l<bl;l++)if(c[l]>c[l-1]&&c[l]>=c[l+1]&&c[l]>best*.93){bl=l;break}
   const a1=c[bl-1],a2=c[bl],a3=c[bl+1],sh=(a1-a3)/(2*(a1-2*a2+a3))||0;
   return {f:sr/(bl+sh),rms};
@@ -413,7 +418,8 @@ function mountQuiz(el,s,done){el.innerHTML=`${visHTML(s.vis)}<div class="body">$
 
 function mountTuner(el,s,done){
   el.innerHTML=`<div class="note">–</div><div class="gauge"><div class="scale"></div><div class="needle"></div><span class="lbl" style="left:0">flat · tighten</span><span class="lbl" style="right:0">sharp · loosen</span></div>
-  <div class="mute" style="text-align:center" data-c>Tap Listen, then pluck one string at a time. Tap a letter to hear that string.</div><div class="tunes"></div><div class="row"></div>`;
+  <div class="mute" style="text-align:center" data-c>Tap Listen, then pluck one string at a time. Tap a letter to hear that string.</div>
+  <div class="row" style="gap:8px;flex-wrap:nowrap"><span class="mute" style="flex:none">🎤 Mic</span><div class="chain" style="flex:1"><i data-lv style="width:0;transition:width .08s"></i></div></div><div class="tunes"></div><div class="row"></div>`;
   const note=el.querySelector(".note"),needle=el.querySelector(".needle"),cl=el.querySelector("[data-c]"),tunes=el.querySelector(".tunes"),row=el.querySelector(".row");
   const got=new Set();let off=null,hold=0,last=-1,sm=null;
   STR.forEach((n,i)=>{const b=btn(tunes,n,"tune",()=>pluck(OPEN[i],null,.5));b.setAttribute("aria-label","Hear the "+SN[i]+" string")});
@@ -421,7 +427,10 @@ function mountTuner(el,s,done){
     if(off){off();off=null;go.textContent="🎤 Listen";go.classList.remove("stop");return}
     if(!await ears()){cl.textContent="No mic: tap a letter to hear the right note, then turn your peg until yours matches.";return}
     go.textContent="■ Stop";go.classList.add("stop");
-    off=listen(()=>{const p=pitch();if(!p)return;let si=0,bd=1e9;OPEN.forEach((f,i)=>{const d=Math.abs(1200*Math.log2(p.f/f));if(d<bd)bd=d,si=i});
+    const lv=el.querySelector("[data-lv]");let quietFor=0;
+    off=listen(()=>{const L=level();lv.style.width=Math.min(100,L*600)+"%";
+      if(L<.003){if(++quietFor===300)cl.textContent="I can't hear anything. Move the phone closer to the soundhole and pluck harder.";return}quietFor=0;
+      const p=pitch();if(!p)return;let si=0,bd=1e9;OPEN.forEach((f,i)=>{const d=Math.abs(1200*Math.log2(p.f/f));if(d<bd)bd=d,si=i});
       const cents=1200*Math.log2(p.f/OPEN[si]);if(Math.abs(cents)>400)return;
       sm=sm===null||si!==last?cents:sm*.7+cents*.3;
       [...tunes.children].forEach((b,i)=>b.classList.toggle("on",i===si));
