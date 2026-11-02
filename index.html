@@ -11,6 +11,7 @@
 <link rel="icon" type="image/png" href="icon-512.png">
 <title>Bruv's Guitar Gym</title>
 <link rel="stylesheet" href="studio.css?v=15">
+<link rel="stylesheet" href="revise.css?v=1">
 <style>
 /* Layout: bright Liquid Glass. A slow colour mesh (amber, sky, blue, teal) sits behind frosted white panels.
    Laptops get a glass sidebar with coloured icon tiles, phones a glass tab bar. Ink text, an amber gradient for actions, navy and blue for depth. */
@@ -214,7 +215,8 @@ nav button[data-t="home"]{--c1:#ffb000;--c2:#ff5e3a}
 nav button[data-t="learn"]{--c1:#4f9bff;--c2:#2f5bff}
 nav button[data-t="practice"]{--c1:#2bd47d;--c2:#0b9e72}
 nav button[data-t="songs"]{--c1:#6c7cff;--c2:#3f51d8}
-nav button[data-t="me"]{--c1:#2dd4bf;--c2:#0e9488}
+nav button[data-t="revise"]{--c1:#2dd4bf;--c2:#0e9488}
+nav button[data-t="me"]{--c1:#94a3b8;--c2:#475569}
 nav button[aria-selected="true"] svg{color:var(--c2)}
 @media (prefers-reduced-motion:no-preference){.pop{animation:pop .32s var(--ease)}@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none}}}
 
@@ -344,6 +346,11 @@ textarea{font:13px/1.5 ui-monospace,"SF Mono",Menlo,monospace;color:var(--text);
   <div id="path" class="stack"></div>
 </section>
 
+<section id="tab-revise" class="stack" hidden>
+  <div class="bruv"><img class="mascot" alt="Bruv" src="bruv/idle_0.png"><div class="bubble" id="rsay">Revision keeps what you've learned from slipping.</div></div>
+  <div id="revise" class="stack"></div>
+</section>
+
 <section id="tab-practice" class="stack" hidden>
   <div class="bruv"><img class="mascot" alt="Bruv" src="bruv/idle_0.png"><div class="bubble" id="psay">The gym floor. Tools unlock as you learn what they need.</div></div>
   <div class="tools" id="tools"></div>
@@ -409,6 +416,7 @@ textarea{font:13px/1.5 ui-monospace,"SF Mono",Menlo,monospace;color:var(--text);
   <div role="tablist">
   <button role="tab" aria-selected="true" data-t="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5 12 4l8.5 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 0 1 3.5 19z"/></svg><span>Today</span></button>
   <button role="tab" aria-selected="false" data-t="learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5 3.5 6.5v13l5.5-2 6 2 5.5-2v-13l-5.5 2z"/><path d="M9 4.5v13M15 6.5v13"/></svg><span>Learn</span></button>
+  <button role="tab" aria-selected="false" data-t="revise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20.5 4v4.5H16"/><path d="M9 12.5l2 2 4-4.5"/></svg><span>Revise</span></button>
   <button role="tab" aria-selected="false" data-t="practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg><span>Gym</span></button>
   <button role="tab" aria-selected="false" data-t="songs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18.5V6l11-2v12.5"/><circle cx="6.5" cy="18.5" r="2.5"/><circle cx="17.5" cy="16.5" r="2.5"/></svg><span>Jam</span></button>
   <button role="tab" aria-selected="false" data-t="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4-5.5 7.5-5.5s6.2 1.9 7.5 5.5"/></svg><span>Me</span></button>
@@ -490,7 +498,8 @@ function triad(rootMidi,minor){const t=ctx().currentTime+.02;[0,minor?3:4,7,12].
 
 /* ================= ears (mic) ================= */
 let an=null,tbuf,fbuf,micDenied=false,micStream=null;
-let capoShift=0; // a capo raises every chord; Studio jams set this so G-shape-with-capo-1 is heard as the G shape
+let capoShift=0;
+let lastResult=null; // the most recent trainer's outcome, read by revision to suggest a grade // a capo raises every chord; Studio jams set this so G-shape-with-capo-1 is heard as the G shape
 async function ears(){
   if(an)return true;if(micDenied)return false;
   try{if(!navigator.mediaDevices?.getUserMedia)throw {name:"NoSupport"};
@@ -616,7 +625,7 @@ function mountInfo(el,s,done){el.innerHTML=`${visHTML(s.vis)}<div class="body">$
 function mountQuiz(el,s,done){el.innerHTML=`${visHTML(s.vis)}<div class="body">${s.q}</div>`;
   const o=h("div","opts");el.append(o);let tries=0,fin=false;
   s.o.map((x,i)=>i).sort(()=>Math.random()-.5).forEach(i=>{const b=btn(o,s.o[i],"opt",()=>{if(fin)return;tries++;
-    if(i===0){fin=true;b.classList.add("right");counters.quiz++;save();say(tries===1?rnd(["Big brain.","Correct. Obviously.","Easy."]):"There you go.");
+    if(i===0){fin=true;lastResult={type:"quiz",tries};b.classList.add("right");counters.quiz++;save();say(tries===1?rnd(["Big brain.","Correct. Obviously.","Easy."]):"There you go.");
       if(s.why)el.append(h("div","body",`<small>${s.why}</small>`));const r=h("div","row");el.append(r);btn(r,"Next","big",done)}
     else{b.classList.add("wrong");say("Nope. Try again.")}})})}
 
@@ -715,7 +724,7 @@ function mountStrum(el,s,done){
     const offs=onsets.map(o=>{let b=1e9;expected.forEach(e=>{if(Math.abs(o-e)<Math.abs(b))b=o-e});return b}).filter(x=>Math.abs(x)<ms()*.9);
     if(offs.length<3){tt.textContent="I couldn't hear many strums. Strum a bit louder or move the phone closer.";return}
     const sorted=[...offs].sort((a,b)=>a-b),med=sorted[sorted.length>>1],good=offs.filter(o=>Math.abs(o-med)<80).length,pct=Math.round(good/Math.max(expected.length,offs.length)*100);
-    tt.textContent=`On time: ${pct}%`+(pct>=80?" 🔥":pct>=55?" (getting there)":" (try it slower)");if(pct>=80){counters.groove++;save();checkBadges()}}
+    lastResult={type:"strum",pct};tt.textContent=`On time: ${pct}%`+(pct>=80?" 🔥":pct>=55?" (getting there)":" (try it slower)");if(pct>=80){counters.groove++;save();checkBadges()}}
   async function start(){armOff&&armOff();armOff=null;ctx();slot=0;bar=-1;onsets=[];expected=[];q("[data-t]").textContent="";q("[data-b]").textContent="Count-in…";
     micOn=s.listen!==false&&await ears();if(micOn){let prev=0,lastOn=0,recent=[],good=0,bad=0;off=listen(()=>{const l=level(),t=performance.now();
       if(l>.02&&l>prev*1.8&&t-lastOn>110){onsets.push(t);lastOn=t;
@@ -746,7 +755,7 @@ function mountRace(el,s,done){
   const q=k=>el.querySelector(k),row=q(".row"),ear=q(".ear"),et=q("[data-e]");
   const drawB=()=>q("[data-b]").innerHTML=pairs.map(p=>{const v=bests[p.join("→")];return `<span>${label(p[0])} → ${label(p[1])}</span><b style="color:${v&&v<2?"var(--good)":"var(--ink)"}">${v?v.toFixed(2)+"s":"—"}</b>`}).join("");drawB();
   const stopListen=()=>{off&&off();off=null};
-  function end(secs){cancelAnimationFrame(raf);stopListen();const k=race.p.join("→");secs=Math.max(.2,secs);q("[data-t]").textContent=secs.toFixed(2)+"s";logRace(secs);
+  function end(secs){cancelAnimationFrame(raf);stopListen();const k=race.p.join("→");secs=Math.max(.2,secs);lastResult={type:"race",secs};q("[data-t]").textContent=secs.toFixed(2)+"s";logRace(secs);
     if(!bests[k]||secs<bests[k]){bests[k]=secs;save();say("New best! +5 ⭐");addXp(5);ding()}else{say(secs<2?"Under 2. Proper.":"Slow and clean beats fast and messy.");addXp(1)}
     drawB();race=null;rounds++;b.textContent="Next round";
     if(rounds===need&&done){btn(row,"Next","big",done);autoNext(row,done,4);return}
@@ -777,7 +786,7 @@ function mountOneMin(el,s,done){
   const bump=()=>{n++;N.textContent=n};
   function begin(){if(t)return;ctx();click(true);n=0;N.textContent=0;left=60;T.textContent=60;go.textContent="Changed! (tap)";go.classList.add("gold");if(an)et.textContent="Go! I'm counting your changes.";
     t=setInterval(()=>{left--;T.textContent=left;if(left<=3&&left>0)click(false);if(left<=0){clearInterval(t);t=null;off&&off();off=null;click(true);go.textContent="Go again";go.classList.remove("gold");
-      const pb=onemin[k]==null||n>onemin[k];if(pb){onemin[k]=n;save();checkBadges()}el.querySelector("[data-b]").textContent="Best: "+onemin[k];say(pb?`${n} changes. New record! +5 ⭐`:`${n} changes. Record's ${onemin[k]}.`);addXp(pb?5:2);
+      lastResult={type:"onemin",n,prev:onemin[k]};const pb=onemin[k]==null||n>onemin[k];if(pb){onemin[k]=n;save();checkBadges()}el.querySelector("[data-b]").textContent="Best: "+onemin[k];say(pb?`${n} changes. New record! +5 ⭐`:`${n} changes. Record's ${onemin[k]}.`);addXp(pb?5:2);
       if(done&&!shown){shown=true;btn(row,"Next","big",done);autoNext(row,done,5)}}},1000)}
   // listen: count a change each time the heard chord flips between a and b
   function arm(){if(!an)return;ear.hidden=false;ear.classList.add("live");et.textContent=`Strum ${label(a)} to start the clock.`;cur=null;hits=0;off&&off();
@@ -795,7 +804,7 @@ function mountEar(el,s,done){
   const Q=el.querySelector("[data-q]"),A=el.querySelector("[data-a]"),Pp=el.querySelector("[data-p]"),Sc=el.querySelector("[data-s]");
   const play=()=>s.kind==="majmin"?triad(cur.root,cur.minor):pluck(OPEN[cur.s],null,.5);
   function ask(){A.innerHTML="";Pp.innerHTML="";
-    if(q>=n){Q.innerHTML=`<b>${right}/${n}</b> right.`;counters.ear++;save();say(right>=n-1?"Golden ears.":"Ears get better every time. Promise.");addXp(right);if(done)btn(Pp,"Next","big",done);else btn(Pp,"Again","big",()=>{q=0;right=0;Sc.textContent="";ask()});return}
+    if(q>=n){lastResult={type:"ear",right,n};Q.innerHTML=`<b>${right}/${n}</b> right.`;counters.ear++;save();say(right>=n-1?"Golden ears.":"Ears get better every time. Promise.");addXp(right);if(done)btn(Pp,"Next","big",done);else btn(Pp,"Again","big",()=>{q=0;right=0;Sc.textContent="";ask()});return}
     cur=s.kind==="majmin"?{root:48+(Math.random()*12|0),minor:Math.random()<.5}:{s:Math.random()*6|0};
     Q.innerHTML=s.kind==="majmin"?`${q+1} of ${n}: is this chord <b>happy</b> (major) or <b>sad</b> (minor)?`:`${q+1} of ${n}: which open string is this?`;
     btn(Pp,"🔊 Play again","ghost",play);play();let answered=false;
@@ -870,7 +879,7 @@ function mountDoctor(el,s,done){
   el.innerHTML=`<div class="now"><div class="cname">${label(c)}</div><div data-d class="bigdia"></div></div><div class="body" data-t></div><div class="docs" data-l></div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div>`;
   const q=k=>el.querySelector(k),D=q("[data-d]"),T=q("[data-t]"),Lst=q("[data-l]"),ear=q(".ear"),et=q("[data-e]"),row=q(".row");
   const draw=()=>D.innerHTML=dia(c,cur,marks);
-  function finish(msg){if(fin)return;fin=true;off&&off();off=null;ear.hidden=true;row.innerHTML="";ding();cleanN[c]=(cleanN[c]||0)+1;save();checkBadges();
+  function finish(msg){if(fin)return;fin=true;lastResult={type:"chordcheck",c,tries};off&&off();off=null;ear.hidden=true;row.innerHTML="";ding();cleanN[c]=(cleanN[c]||0)+1;save();checkBadges();
     say(msg||rnd(["Every string ringing. Clean.","Clean as anything. Every string.","That's the one. All strings ringing."]));
     if(done){btn(row,"Next","big",done);autoNext(row,done)}else btn(row,"Check again","big",start)}
   function report(){cur=-1;draw();const probs=marks.map((m,i)=>[m,i]).filter(([m])=>m&&m!=="ok"),oks=marks.map((m,i)=>m==="ok"?STRN[i]:null).filter(Boolean);
@@ -1399,9 +1408,10 @@ document.querySelectorAll(".bubble").forEach(el=>mo.observe(el,{childList:true,c
 
 /* ================= tabs ================= */
 function refresh(){drawStats();drawHome();drawWeek();drawPath();drawPractice();drawSongs();drawMe();checkBadges()}
-function tab(t){document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x.dataset.t===t));["home","learn","practice","songs","me"].forEach(k=>$("tab-"+k).hidden=k!==t);document.querySelector(".top h1").textContent={home:"Today",learn:"Learn",practice:"Gym",songs:"Jam",me:"You"}[t];refresh();scrollTo(0,0)}
+function tab(t){document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x.dataset.t===t));["home","learn","revise","practice","songs","me"].forEach(k=>$("tab-"+k).hidden=k!==t);document.querySelector(".top h1").textContent={home:"Today",learn:"Learn",revise:"Revise",practice:"Gym",songs:"Jam",me:"You"}[t];refresh();scrollTo(0,0)}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>tab(b.dataset.t));
 refresh();
 </script>
 <script src="studio.js?v=15"></script>
+<script src="revise.js?v=2"></script>
 </body></html>
