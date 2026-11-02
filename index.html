@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-512.png">
 <title>Bruv's Guitar Gym</title>
-<link rel="stylesheet" href="studio.css?v=15">
+<link rel="stylesheet" href="studio.css?v=24">
 <link rel="stylesheet" href="revise.css?v=1">
 <style>
 /* Layout: bright Liquid Glass. A slow colour mesh (amber, sky, blue, teal) sits behind frosted white panels.
@@ -421,7 +421,7 @@ textarea{font:13px/1.5 ui-monospace,"SF Mono",Menlo,monospace;color:var(--text);
   <button role="tab" aria-selected="false" data-t="songs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18.5V6l11-2v12.5"/><circle cx="6.5" cy="18.5" r="2.5"/><circle cx="17.5" cy="16.5" r="2.5"/></svg><span>Jam</span></button>
   <button role="tab" aria-selected="false" data-t="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4-5.5 7.5-5.5s6.2 1.9 7.5 5.5"/></svg><span>Me</span></button>
   </div>
-  <div class="coach"><b>In a jam</b><span><kbd>Space</kbd> play · <kbd>←</kbd><kbd>→</kbd> 5 s · <kbd>↑</kbd><kbd>↓</kbd> speed · <kbd>L</kbd> loop · <kbd>W</kbd> wait mode · <kbd>Esc</kbd> close</span></div>
+  <div class="coach"><b>In a jam</b><span><kbd>Space</kbd> play · <kbd>←</kbd><kbd>→</kbd> 5 s · <kbd>↑</kbd><kbd>↓</kbd> speed · <kbd>L</kbd> loop · <kbd>W</kbd> wait mode · <kbd>[</kbd><kbd>]</kbd> words earlier/later · <kbd>Esc</kbd> close</span></div>
 </nav>
 
 <script>
@@ -659,7 +659,7 @@ function mountTuner(el,s,done){
 }
 
 // hands-free helpers: with the mic on, steps finish and move on by themselves
-const hears=c=>{if(level()<.01)return false;const ch=chroma();if(!ch)return false;return chordScore(ch,c)>.5&&sameChord(bestChord(ch,Object.keys(CH)).c,c)};
+const hears=c=>{if(level()<.006)return false;const ch=chroma();if(!ch)return false;return chordScore(ch,c)>.48&&sameChord(bestChord(ch,Object.keys(CH)).c,c)};
 function autoNext(row,done,secs=3){if(!an||!done)return;let n=secs;const t=h("span","mute",`Next in ${n}…`);t.style.fontWeight="900";row.append(t);
   const iv=setInterval(()=>{n--;if(!t.isConnected){clearInterval(iv);return}if(n<=0){clearInterval(iv);done()}else t.textContent=`Next in ${n}…`},1000);cleanup.push(()=>clearInterval(iv))}
 
@@ -1413,6 +1413,6 @@ function tab(t){document.querySelectorAll("nav button").forEach(x=>x.setAttribut
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>tab(b.dataset.t));
 refresh();
 </script>
-<script src="studio.js?v=15"></script>
+<script src="studio.js?v=25"></script>
 <script src="revise.js?v=2"></script>
 </body></html>
