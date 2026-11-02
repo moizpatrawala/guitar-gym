@@ -154,21 +154,61 @@ nav button{flex:1;border:2.5px solid transparent;border-radius:14px;padding:6px 
 nav button span{font-size:20px}
 nav button[aria-selected="true"]{background:var(--gold);color:var(--ink);border-color:var(--ink)}
 @media (prefers-reduced-motion:no-preference){.pop{animation:pop .25s ease-out}@keyframes pop{from{transform:scale(.85)}to{transform:none}}}
+/* v3: workout hero, chips, mastery rings, string doctor, jam timeline */
+.pill.blue{background:var(--blue);color:#fff}
+.hero{background:linear-gradient(160deg,#2f72f2,#1646b4);color:#fff}
+.hero h2{color:var(--gold);-webkit-text-stroke:1.2px var(--ink);text-shadow:2px 2px 0 var(--ink);font-size:26px}
+.hero .mute{color:#dbe6ff}
+.hero .chain{background:#0f3a98}
+.big.xl{font-size:26px;padding:18px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--card);color:var(--ink);border:2.5px solid var(--ink);border-radius:99px;padding:4px 10px;font-weight:900;font-size:13px}
+.chip.on{background:var(--gold)}
+.chip.ok{background:var(--good);color:#fff}
+.chip.miss{background:var(--hot);color:#fff}
+.rings{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 8px}
+.ringc{flex:none;display:grid;justify-items:center;gap:2px;font-weight:900;font-size:12px;color:var(--mute)}
+.ringc svg text{font-family:var(--display)}
+.sec{display:inline-block;background:var(--gold);color:var(--ink);border:2.5px solid var(--ink);border-radius:99px;padding:2px 10px;font-family:var(--body);font-weight:900;font-size:13px;margin-right:8px;vertical-align:middle;letter-spacing:0}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:3px solid var(--ink);border-radius:14px;overflow:hidden;box-shadow:3px 3px 0 var(--ink)}
+.seg button{padding:11px 6px;font-weight:900;background:var(--card)}
+.seg button+button{border-left:3px solid var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--gold)}
+.seg button:disabled{opacity:.55}
+.tl{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 6px;scroll-behavior:smooth}
+.tl .chip{flex:none;min-width:52px;text-align:center;font-size:16px;padding:8px 10px;border-radius:12px}
+.docs{display:grid;gap:8px}
+.doc{display:flex;gap:10px;align-items:flex-start;background:var(--paper);border:2.5px solid var(--ink);border-radius:12px;padding:8px 12px;font-weight:800;line-height:1.4}
+.doc b.s{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--hot);border:2px solid var(--ink)}
+.doc.ok b.s{background:var(--good)}
+.micpill{display:flex;align-items:center;gap:6px;font-weight:900;font-size:13px;background:var(--card);border:2.5px solid var(--ink);border-radius:99px;padding:5px 10px}
+.micpill i{display:block;width:38px;height:9px;border-radius:99px;background:var(--paper);border:2px solid var(--ink);overflow:hidden;position:relative}
+.micpill i b{position:absolute;inset:0 auto 0 0;background:var(--good);width:0;transition:width .08s}
+.lvrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:900}
+.lvrow b{font-family:var(--display);font-weight:400;font-size:22px;color:var(--blue)}
+.songc .row{justify-content:space-between}
+.libc svg{max-width:100%;height:auto}
+.bigdia svg{width:min(170px,100%);height:auto}
+.bigdia svg[aria-label*="neck"]{width:min(330px,100%)}
+.songc .meta{display:flex;gap:6px;flex-wrap:wrap}
 </style>
 </head><body>
 
-<header class="top"><h1>Guitar Gym</h1><div class="stats"><span class="pill" id="streak">🔥 0</span><span class="pill" id="xp">⭐ 0</span></div></header>
+<header class="top"><h1>Guitar Gym</h1><div class="stats"><span class="pill blue" id="lv">Lv 1</span><span class="pill" id="streak">🔥 0</span><span class="pill" id="xp">⭐ 0</span></div></header>
 
 <main>
 <section id="tab-home" class="stack">
   <div class="bruv"><img class="mascot" alt="Bruv" src="bruv/idle_0.png"><div class="bubble" id="hsay">Yo Tony.</div></div>
-  <div class="card">
-    <h2>Today</h2>
-    <div class="mute" id="goalTxt"></div>
+  <div class="card hero">
+    <div class="row" style="justify-content:space-between"><h2>Today's workout</h2><span class="pill" id="wmin">~10 min</span></div>
+    <div class="chips" id="wplan"></div>
+    <button class="big gold xl" id="wgo">▶ Start workout</button>
+    <p class="mute">Hands-free: phone on a stand, mic on. Bruv talks you through it and moves on when he hears you play.</p>
     <div class="chain" aria-hidden="true"><i id="goalBar" style="width:0"></i></div>
-    <ul class="plan" id="plan"></ul>
-    <button class="big" id="cont">Continue</button>
+    <div class="mute" id="goalTxt"></div>
   </div>
+  <button class="ghost" id="cont">Just the next lesson</button>
+  <div class="card"><h2>Your chords</h2><p class="mute">The ring fills as a chord gets clean and fast. Tap one to check it with the String Doctor.</p><div class="rings" id="rings"></div></div>
   <div class="card">
     <h2>This week</h2>
     <div class="week" id="week"></div>
@@ -177,7 +217,8 @@ nav button[aria-selected="true"]{background:var(--gold);color:var(--ink);border-
   </div>
   <div class="card">
     <h2>Your journey</h2>
-    <div class="chain" aria-hidden="true"><i id="pathBar" style="width:0"></i></div>
+    <div class="lvrow"><b id="lvname">Fresh Strings</b><span class="mute" id="lvnext"></span></div>
+    <div class="chain" aria-hidden="true"><i id="lvbar" style="width:0"></i></div>
     <div class="mute" id="journey"></div>
   </div>
 </section>
@@ -188,13 +229,13 @@ nav button[aria-selected="true"]{background:var(--gold);color:var(--ink);border-
 </section>
 
 <section id="tab-practice" class="stack" hidden>
-  <div class="bruv"><img class="mascot" alt="Bruv" src="bruv/idle_0.png"><div class="bubble" id="psay">Free practice. Tools unlock as you learn what they need.</div></div>
+  <div class="bruv"><img class="mascot" alt="Bruv" src="bruv/idle_0.png"><div class="bubble" id="psay">The gym floor. Tools unlock as you learn what they need.</div></div>
   <div class="tools" id="tools"></div>
-  <div class="card"><h2>Chord library</h2><p class="mute">Tap a chord to hear it. Locked ones open up in Learn.</p><div class="lib" id="lib"></div></div>
+  <div class="card"><h2>Chord library</h2><p class="mute">Tap a chord you know to run the String Doctor on it. Locked ones just play the sound.</p><div class="lib" id="lib"></div></div>
 </section>
 
 <section id="tab-songs" class="stack" hidden>
-  <div class="bruv"><img class="mascot" alt="Bruv" src="bruv/idle_0.png"><div class="bubble" id="ssay">Songs unlock when you know their chords.</div></div>
+  <div class="bruv"><img class="mascot" alt="Bruv" src="bruv/idle_0.png"><div class="bubble" id="ssay">Jam mode. "Wait for me" pauses before every change until you get there.</div></div>
   <div id="songlist" class="stack"></div>
   <div class="card">
     <h2>Add your own song</h2>
@@ -214,14 +255,20 @@ nav button[aria-selected="true"]{background:var(--gold);color:var(--ink);border-
   <div class="card"><h2>Stats</h2><div class="best" id="mestats"></div></div>
   <div class="card"><h2>Badges</h2><div class="badges" id="badges"></div></div>
   <div class="card"><h2>Settings</h2>
+    <label class="row" for="set-voice"><input type="checkbox" id="set-voice"> Bruv talks out loud (hands-free coaching)</label>
+    <label class="mute" for="set-view">Chord pictures</label>
+    <select id="set-view"><option value="chart">Chart: upright, like chord books</option><option value="neck">Neck: sideways, like looking at your guitar</option></select>
     <label class="row" for="set-left"><input type="checkbox" id="set-left"> Left-handed (mirror chord diagrams)</label>
     <label class="mute" for="set-goal">Daily goal</label>
     <select id="set-goal"><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="20">20 minutes</option><option value="30">30 minutes</option></select>
-    <label class="row" for="set-guide"><input type="checkbox" id="set-guide"> Bruv strums along in songs when the mic is off</label>
+    <label class="row" for="set-guide"><input type="checkbox" id="set-guide"> Bruv strums along when the mic is off</label>
     <label class="row" for="set-easy"><input type="checkbox" id="set-easy"> Use Easy G and Easy C in songs until I learn the full ones</label>
     <label class="mute" for="set-time">Daily practice reminder</label>
     <div class="grid2"><input type="time" id="set-time" value="19:00" style="background:var(--paper);border:2.5px solid var(--ink);border-radius:12px;padding:9px 10px;font-weight:800;min-width:0;width:100%"><button class="ghost" id="set-remind">📅 Add to calendar</button></div>
-    <p class="mute">Adds a repeating daily event with an alert to your phone's calendar. Bruv nags you so the streak lives.</p>
+    <p class="mute">Adds a repeating daily event with an alert to your phone's calendar.</p>
+    <label class="mute">Move progress to another device</label>
+    <button class="ghost" id="set-sync">📲 Send my progress</button>
+    <p class="mute">AirDrop or message the link to your other device and open it there. That device takes this one's progress.</p>
     <button class="ghost" id="set-reset">Reset all progress</button>
   </div>
   <div class="card"><h2>Help</h2><div class="stack" id="faq"></div></div>
@@ -231,17 +278,17 @@ nav button[aria-selected="true"]{background:var(--gold);color:var(--ink);border-
 
 <div class="sheet" id="sheet" hidden>
   <div class="in">
-    <div class="sbar"><button class="x" id="sx" aria-label="Close">×</button><div class="prog"><i id="sprog" style="width:0"></i></div></div>
+    <div class="sbar"><button class="x" id="sx" aria-label="Close">×</button><div class="prog"><i id="sprog" style="width:0"></i></div><span class="micpill" id="mic" hidden>🎤<i><b></b></i></span></div>
     <div class="bruv" style="min-height:120px"><img class="mascot" alt="Bruv" src="bruv/idle_0.png" style="height:120px"><div class="bubble" id="ssbub" style="margin-bottom:46px">Let's go.</div></div>
     <div class="card" id="scard"></div>
   </div>
 </div>
 
 <nav><div role="tablist">
-  <button role="tab" aria-selected="true" data-t="home"><span>🏠</span>Home</button>
+  <button role="tab" aria-selected="true" data-t="home"><span>🏠</span>Today</button>
   <button role="tab" aria-selected="false" data-t="learn"><span>🗺️</span>Learn</button>
-  <button role="tab" aria-selected="false" data-t="practice"><span>🏋️</span>Practice</button>
-  <button role="tab" aria-selected="false" data-t="songs"><span>🎸</span>Songs</button>
+  <button role="tab" aria-selected="false" data-t="practice"><span>🏋️</span>Gym</button>
+  <button role="tab" aria-selected="false" data-t="songs"><span>🎸</span>Jam</button>
   <button role="tab" aria-selected="false" data-t="me"><span>😎</span>Me</button>
 </div></nav>
 
@@ -293,15 +340,16 @@ let known=S("known",{open:1});  // chord → true
 let bests=S("bests",{});       // "A→B" race secs
 let onemin=S("onemin",{});     // "A-B" changes in 60s
 let badges=S("badges",{});
-let cfg=S("cfg",{left:false,goal:15,guide:true,easy:true});
+let cfg=S("cfg",{left:false,goal:15,guide:true,easy:true});cfg.voice??=true;cfg.view??="chart";
 let custom=S("custom",[]);
 let counters=S("counters",{ear:0,quiz:0,songs:0,tuned:0,notes:0,groove:0});
-let log=S("log",{done:{},race:{}}); // per-day history for the weekly card: lessons finished, average change time
+let log=S("log",{done:{},race:{}});let cleanN=S("clean",{}),jam=S("jam",{}); // clean String Doctor checks per chord; per-song jam speed/best; // per-day history for the weekly card: lessons finished, average change time
 function logRace(secs){const d=today(),r=log.race[d]||{sum:0,n:0};r.sum+=secs;r.n++;log.race[d]=r;save()}
-function save(){W("log",log);W("stats",st);W("done",done);W("known",known);W("bests",bests);W("onemin",onemin);W("badges",badges);W("cfg",cfg);W("custom",custom);W("counters",counters)}
+function save(){W("log",log);W("stats",st);W("done",done);W("known",known);W("bests",bests);W("onemin",onemin);W("badges",badges);W("cfg",cfg);W("custom",custom);W("counters",counters);W("clean",cleanN);W("jam",jam)}
 function addXp(n){if(st.last!==today()){const y=new Date(Date.now()-864e5).toDateString();st.streak=st.last===y?st.streak+1:1;st.last=today()}
   st.xp+=n;save();drawStats();checkBadges()}
-function drawStats(){$("streak").textContent="🔥 "+st.streak;$("xp").textContent="⭐ "+st.xp}
+function drawStats(){$("streak").textContent="🔥 "+st.streak;$("xp").textContent="⭐ "+st.xp;const li=lvOf(st.xp);$("lv").textContent="Lv "+(li+1);
+  if(st.lv!=null&&li>st.lv)toast(`Level up! Lv ${li+1}: ${LV[li][1]} 🎉`);if(st.lv!==li){st.lv=li;W("stats",st)}}
 function toast(t){const e=h("div","toast pop",t);document.body.append(e);setTimeout(()=>e.remove(),2600)}
 
 /* ================= sound out ================= */
@@ -352,18 +400,42 @@ const sameChord=(a,b)=>CH[a].pc.join()===CH[b].pc.join();
 const midiOf=f=>69+12*Math.log2(f/440);
 const noteName=m=>NOTES[((Math.round(m)%12)+12)%12];
 // one shared listen loop; components register a callback and get an unregister function back
-let loops=new Set();(function L(){loops.forEach(fn=>{try{fn()}catch(e){}});requestAnimationFrame(L)})();
+// one shared listen loop; components register a callback and get an unregister function back. It pauses while Bruv talks so his voice isn't mistaken for playing
+let loops=new Set(),talking=0;(function L(){if(performance.now()>talking)loops.forEach(fn=>{try{fn()}catch(e){}});requestAnimationFrame(L)})();
 function listen(fn){loops.add(fn);return()=>loops.delete(fn)}
 
+/* ================= Bruv's voice ================= */
+let voice=null,busy=false; // busy = a timed drill is running, so Bruv only shows text instead of talking over it
+function pickVoice(){const v=speechSynthesis.getVoices();voice=v.find(x=>x.lang==="en-GB"&&/Daniel|Arthur|Oliver/.test(x.name))||v.find(x=>x.lang==="en-GB")||v.find(x=>/^en/.test(x.lang))||null}
+if(window.speechSynthesis){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function speak(t){if(!cfg.voice||!window.speechSynthesis||!t)return;
+  const s=String(t).replace(/<[^>]+>/g," ").replace(/[→⇄]/g," to ").replace(/✕/g,"X").replace(/[\p{Extended_Pictographic}️]/gu,"").replace(/\s+/g," ").trim();if(!s)return;
+  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);if(voice)u.voice=voice;u.lang=voice?.lang||"en-GB";u.rate=1.05;
+  talking=performance.now()+700+s.length*70;u.onend=u.onerror=()=>{talking=performance.now()+250};speechSynthesis.speak(u)}
+function hush(){try{speechSynthesis.cancel()}catch{}talking=0}
+
 /* ================= visuals ================= */
-function dia(name,hi=-1){const c=CH[name];
-  let s=`<svg width="110" height="130" viewBox="0 0 110 130" role="img" aria-label="${label(name)} chord diagram"><rect x="15" y="20" width="80" height="4" fill="var(--ink)"/>`;
-  for(let i=0;i<6;i++)s+=`<line x1="${15+i*16}" y1="22" x2="${15+i*16}" y2="118" stroke="${i===hi?"var(--blue)":"var(--mute)"}" stroke-width="${i===hi?3.5:1.5}"/>`;
-  for(let j=1;j<=4;j++)s+=`<line x1="15" y1="${22+j*24}" x2="95" y2="${22+j*24}" stroke="var(--tan)" stroke-width="2"/>`;
-  c.f.forEach((f,i)=>{const x=15+i*16;
-    if(f<0)s+=`<text x="${x}" y="14" fill="var(--hot)" font-size="12" font-weight="900" text-anchor="middle">✕</text>`;
-    else if(f===0)s+=`<circle cx="${x}" cy="10" r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;
-    else s+=`<circle cx="${x}" cy="${22+f*24-12}" r="8" fill="var(--blue)" stroke="var(--ink)" stroke-width="1.5"/><text x="${x}" y="${22+f*24-8}" fill="#fff" font-size="11" font-weight="900" text-anchor="middle">${c.n[i]}</text>`});
+const STRN=["low E","A","D","G","B","high e"];
+const MK={ok:["✓","var(--good)"],bad:["✗","var(--hot)"],open:["✗","var(--hot)"],ring:["!","var(--hot)"],"?":["?","var(--gold)"]};
+// chord picture: upright chart or sideways neck (cfg.view). marks = per-string doctor results drawn on the strings
+function dia(name,hi=-1,marks){const c=CH[name];if(!c)return "";
+  const mk=i=>marks&&MK[marks[i]],col=i=>mk(i)?mk(i)[1]:i===hi?"var(--blue)":"var(--mute)",wd=i=>mk(i)||i===hi?3.5:1.5;
+  const badge=(x,y,i)=>mk(i)?`<circle cx="${x}" cy="${y}" r="7.5" fill="${mk(i)[1]}" stroke="var(--ink)" stroke-width="1.5"/><text x="${x}" y="${y+4}" fill="${marks[i]==="?"?"var(--ink)":"#fff"}" font-size="11" font-weight="900" text-anchor="middle">${mk(i)[0]}</text>`:"";
+  const dot=(x,y,i)=>`<circle cx="${x}" cy="${y}" r="8" fill="var(--blue)" stroke="var(--ink)" stroke-width="1.5"/><text x="${x}" y="${y+4}" fill="#fff" font-size="11" font-weight="900" text-anchor="middle">${c.n[i]}</text>`;
+  let s;
+  if(cfg.view==="neck"){const Y=i=>16+i*18,X=f=>44+f*44-22,W=marks?240:222;
+    s=`<svg width="${W}" height="124" viewBox="0 0 ${W} 124" role="img" aria-label="${label(name)} chord, neck view"><rect x="40" y="9" width="5" height="104" fill="var(--ink)"/>`;
+    for(let j=1;j<=4;j++)s+=`<line x1="${44+j*44}" y1="10" x2="${44+j*44}" y2="112" stroke="var(--tan)" stroke-width="2"/>`;
+    for(let i=0;i<6;i++)s+=`<line x1="44" y1="${Y(i)}" x2="220" y2="${Y(i)}" stroke="${col(i)}" stroke-width="${wd(i)+(5-i)*.25}"/><text x="4" y="${Y(i)+4}" font-size="11" font-weight="900" fill="var(--mute)">${STR[i]}</text>`;
+    c.f.forEach((f,i)=>{if(f<0)s+=`<text x="30" y="${Y(i)+4}" fill="var(--hot)" font-size="12" font-weight="900" text-anchor="middle">✕</text>`;
+      else if(f===0)s+=`<circle cx="30" cy="${Y(i)}" r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;else s+=dot(X(f),Y(i),i);s+=badge(231,Y(i),i)});
+  }else{const H=marks?150:130;
+    s=`<svg width="110" height="${H}" viewBox="0 0 110 ${H}" role="img" aria-label="${label(name)} chord diagram"><rect x="15" y="20" width="80" height="4" fill="var(--ink)"/>`;
+    for(let i=0;i<6;i++)s+=`<line x1="${15+i*16}" y1="22" x2="${15+i*16}" y2="118" stroke="${col(i)}" stroke-width="${wd(i)}"/>`;
+    for(let j=1;j<=4;j++)s+=`<line x1="15" y1="${22+j*24}" x2="95" y2="${22+j*24}" stroke="var(--tan)" stroke-width="2"/>`;
+    c.f.forEach((f,i)=>{const x=15+i*16;
+      if(f<0)s+=`<text x="${x}" y="14" fill="var(--hot)" font-size="12" font-weight="900" text-anchor="middle">✕</text>`;
+      else if(f===0)s+=`<circle cx="${x}" cy="10" r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;else s+=dot(x,22+f*24-12,i);s+=badge(x,138,i)})}
   return `<span class="${cfg.left?"flip":""}">${s}</svg></span>`}
 const VIS={
   parts:`<svg viewBox="0 0 340 170" width="100%" style="max-width:420px" role="img" aria-label="Guitar parts">
@@ -394,17 +466,19 @@ const VIS={
     <text x="50" y="22" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="11" fill="var(--mute)">fret 1</text></svg>`,
   tab:`<div class="tab">e|-----0---|\nB|---------|\nG|---------|\nD|---------|\nA|-3-------|\nE|---------|</div>`,
 };
-
 /* ================= sheet ================= */
 let cleanup=[],sheetOpen=false;
-function clean(){cleanup.forEach(f=>{try{f()}catch(e){}});cleanup=[]}
+function clean(){cleanup.forEach(f=>{try{f()}catch(e){}});cleanup=[];busy=false}
 function openSheet(){$("sheet").hidden=false;document.body.style.overflow="hidden";sheetOpen=true}
-function closeSheet(){clean();$("sheet").hidden=true;document.body.style.overflow="";sheetOpen=false;refresh()}
+function closeSheet(){clean();hush();$("sheet").hidden=true;document.body.style.overflow="";sheetOpen=false;refresh()}
 $("sx").onclick=closeSheet;
-function say(t){$("ssbub").textContent=t}
+function say(t){$("ssbub").textContent=t;if(!busy)speak(t)}
 function btn(parent,txt,cls,fn){const b=h("button",cls,txt);b.onclick=fn;parent.append(b);return b}
 const visHTML=v=>!v?"":`<div class="vis">${v.startsWith("dia:")?dia(v.slice(4)):VIS[v]}</div>`;
+// mic level in the sheet bar, so you can always see that Bruv hears you
+(function M(){const m=$("mic");if(an&&sheetOpen){m.hidden=false;m.querySelector("b").style.width=Math.min(100,level()*700)+"%"}else m.hidden=true;requestAnimationFrame(M)})();
 
+/* ================= trainers: mount(el, step, done) ================= */
 /* ================= trainers: mount(el, step, done) ================= */
 function mountInfo(el,s,done){el.innerHTML=`${visHTML(s.vis)}<div class="body">${s.t}${s.h?`<small>${s.h}</small>`:""}</div>`;
   const r=h("div","row");el.append(r);if(s.hear)btn(r,"🔊 Hear it","ghost",s.hear);btn(r,s.ok||"Got it","big",done)}
@@ -471,20 +545,6 @@ function mountNotes(el,s,done){
   cleanup.push(()=>off&&off());
 }
 
-// strum the full chord; the mic recognises it
-function mountChordCheck(el,s,done){
-  const c=s.c;el.innerHTML=`<div class="now"><div class="cname">${label(c)}</div>${dia(c)}</div><div class="body">${s.t||"Strum all the strings that aren't ✕. Let it ring."}<small>I'm listening for the whole chord.</small></div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div>`;
-  const ear=el.querySelector(".ear"),et=el.querySelector("[data-e]"),row=el.querySelector(".row");let off=null,fin=false;
-  const finish=()=>{if(fin)return;fin=true;off&&off();ear.hidden=true;row.innerHTML="";ding();say(rnd(["That's the one.","Sounds right to me.","Chord unlocked, bruv."]));if(done){btn(row,"Next","big",done);autoNext(row,done)}};
-  btn(row,"🔊 Hear "+label(c),"ghost",()=>strum(c));
-  const m=btn(row,"Sounded right","big",finish);
-  (async()=>{if(await ears()){ear.hidden=false;ear.classList.add("live");et.textContent="Strum it…";m.className="ghost";let hits=0,miss=0;
-    const pool=Object.keys(CH);off=listen(()=>{if(fin||level()<.01)return;const ch=chroma();if(!ch)return;const sc=chordScore(ch,c),b=bestChord(ch,pool);
-      if(sc>.55&&sameChord(b.c,c)){if(++hits>6){et.textContent="✓ "+label(c);finish()}}
-      else if(++miss>45){miss=0;et.textContent=`Sounds more like ${label(b.c)}. Pluck string by string to find the dead one.`}})}})();
-  cleanup.push(()=>off&&off());
-}
-
 // muscle-memory reps: the mic counts each time the chord rings out after a lift (silence)
 function mountReps(el,s,done){
   const c=s.c,need=s.n||5;let n=0,off=null,quiet=true,quietMs=0,hits=0,last=performance.now(),fin=false;
@@ -535,8 +595,8 @@ function mountStrum(el,s,done){
             if(recent.length>=4){if(Math.abs(o-med)<70){good++;bad=0;if(good%8===0)say(rnd(["Locked in 🔥","In the pocket.","Groovy, bruv.","That's the groove."]))}
               else{bad++;good=0;if(bad===4){say(o-med>0?"Dragging a bit. Push forward.":"Rushing. Chill, ride the click.");bad=0}}}}}}
       prev=prev*.6+l*.4})}
-    tick();timer=setInterval(tick,ms());go.textContent="■ Stop";go.classList.add("stop")}
-  function stop(){clearInterval(timer);timer=null;off&&off();off=null;if(go){go.textContent="▶ Start";go.classList.remove("stop")}[...slots.children].forEach(d=>d.classList.remove("on"))}
+    busy=true;tick();timer=setInterval(tick,ms());go.textContent="■ Stop";go.classList.add("stop")}
+  function stop(){clearInterval(timer);timer=null;busy=false;off&&off();off=null;if(go){go.textContent="▶ Start";go.classList.remove("stop")}[...slots.children].forEach(d=>d.classList.remove("on"))}
   // hands-free: wait for one strum, then count in
   async function arm(){if(s.listen===false||!await ears()||timer)return;q("[data-b]").textContent="🎸 Strum once when you're ready. I'll count you in.";let prev=0,quietSince=0,t0=performance.now();
     armOff=listen(()=>{const l=level(),t=performance.now();if(t-t0<800){prev=l;return}if(l>.03&&l>prev*2){armOff();armOff=null;setTimeout(()=>{if(!timer&&el.isConnected)start()},900)}prev=prev*.6+l*.4})}
@@ -653,6 +713,122 @@ function mountMetronome(el){
   const go=btn(row,"▶ Start","big",()=>{if(t){clearInterval(t);t=null;go.textContent="▶ Start";go.classList.remove("stop");return}ctx();b=0;tick();t=setInterval(tick,60000/bpm);go.textContent="■ Stop";go.classList.add("stop")});
   let taps=[];btn(row,"Tap tempo","ghost",()=>{const n=performance.now();taps=taps.filter(x=>n-x<3000);taps.push(n);if(taps.length>=3){const iv=(taps.at(-1)-taps[0])/(taps.length-1);bpm=Math.max(40,Math.min(200,Math.round(60000/iv)));R.value=bpm;V.textContent=bpm;re()}});
   cleanup.push(()=>clearInterval(t));
+}
+
+/* ================= string doctor ================= */
+// From one strum, look for each string's own note in the spectrum. If another string's overtones land on the same note it can't be told apart,
+// so those strings (and any that look dead) get confirmed with a single pluck.
+const cents=(a,b)=>Math.abs(1200*Math.log2(a/b));
+function doctorPlan(c){const ch=CH[c],played=ch.f.map((fr,i)=>fr<0?0:hz(i,fr));
+  return ch.f.map((fr,i)=>{const others=played.filter((x,j)=>x&&j!==i),
+      free=f=>f<1400&&!others.some(o=>[1,2,3,4,5,6].some(k=>cents(o*k,f)<45)),
+      probe=f=>(f<130?[2,3,1]:[1,2,3]).map(k=>f*k).find(free)||0;
+    return fr<0?{i,mute:true,probe:probe(OPEN[i])}:{i,probe:probe(played[i]),openProbe:fr>0?probe(OPEN[i]):0}})}
+// how far (dB) the strongest bin near f stands above the surrounding spectrum
+function peakDb(acc,f){const bw=ac.sampleRate/an.fftSize,k0=f/bw,w=Math.max(1.5,k0*(2**(30/1200)-1)),ex=Math.max(2.5,k0*(2**(70/1200)-1));let pk=0;const fl=[];
+  for(let k=Math.floor(k0*2**(-3/12));k<=Math.ceil(k0*2**(3/12));k++){const v=acc[k]||0;if(Math.abs(k-k0)<=w)pk=Math.max(pk,v);else if(Math.abs(k-k0)>ex)fl.push(v)}
+  fl.sort((a,b)=>a-b);return 10*Math.log10((pk+1e-15)/((fl[fl.length>>1]||0)+1e-15))}
+// the fix for a bad string, naming the finger that's most likely to blame (the one on the nearest thicker fretted string leans over it)
+function advice(c,i,stt){const ch=CH[c],fr=ch.f[i],fg=FN[ch.n[i]],nb=[...Array(i).keys()].reverse().find(j=>ch.f[j]>0),
+    cul=nb!=null?`your ${FN[ch.n[nb]]} finger on the ${STRN[nb]} string`:"",first=ch.f.findIndex(f=>f>=0);
+  if(stt==="ring")return `The ${STRN[i]} string is ringing, but it's an ✕. Start your strum from the ${STRN[first]} string.`;
+  if(stt==="open")return `The ${STRN[i]} string is ringing open. Your ${fg} finger isn't pressing it down: tip down, right behind fret ${fr}.`;
+  if(fr>0)return `The ${STRN[i]} string is dead or buzzing. Press harder with your ${fg} finger, on the very tip, right behind fret ${fr}.`+(cul?` Or ${cul} is leaning on it.`:"");
+  return `The ${STRN[i]} string should ring open but it's muted.`+(cul?` ${cul[0].toUpperCase()+cul.slice(1)} is probably touching it. Arch it and come down on the tip.`:" Something's touching it.")}
+function mountDoctor(el,s,done){
+  const c=s.c,plan=doctorPlan(c),confirmed=new Set(),again=new Set();let pT=0,marks,off=null,fin=false,tries=0,phase,queue=[],cur=-1,t0=0,prev=0,acc=null,frames=0,pk;
+  el.innerHTML=`<div class="now"><div class="cname">${label(c)}</div><div data-d class="bigdia"></div></div><div class="body" data-t></div><div class="docs" data-l></div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div>`;
+  const q=k=>el.querySelector(k),D=q("[data-d]"),T=q("[data-t]"),Lst=q("[data-l]"),ear=q(".ear"),et=q("[data-e]"),row=q(".row");
+  const draw=()=>D.innerHTML=dia(c,cur,marks);
+  function finish(msg){if(fin)return;fin=true;off&&off();off=null;ear.hidden=true;row.innerHTML="";ding();cleanN[c]=(cleanN[c]||0)+1;save();checkBadges();
+    say(msg||rnd(["Every string ringing. Clean.","Clean as anything. Every string.","That's the one. All strings ringing."]));
+    if(done){btn(row,"Next","big",done);autoNext(row,done)}else btn(row,"Check again","big",start)}
+  function report(){cur=-1;draw();const probs=marks.map((m,i)=>[m,i]).filter(([m])=>m&&m!=="ok"),oks=marks.map((m,i)=>m==="ok"?STRN[i]:null).filter(Boolean);
+    Lst.innerHTML=(oks.length?`<div class="doc ok"><b class="s">✓</b><span>${oks.join(", ")}: ringing clean</span></div>`:"")+probs.map(([m,i])=>`<div class="doc"><b class="s">${MK[m][0]}</b><span>${advice(c,i,m)}</span></div>`).join("");
+    if(!probs.length){finish();return}
+    tries++;if(tries>=3&&done&&an){et.textContent="Close enough for today.";setTimeout(()=>finish("Close enough for today. We'll polish it in the next workout."),2500);return}
+    say(advice(c,probs[0][1],probs[0][0]));T.innerHTML=`Fix it, then strum <b>${label(c)}</b> again.`;phase="strum";et.textContent="Strum again when you're ready…"}
+  function evalStrum(){
+    plan.forEach(p=>{const i=p.i;if(p.mute){marks[i]=p.probe&&peakDb(acc,p.probe)>14?"ring":null;return}
+      const d=p.probe?peakDb(acc,p.probe):null;
+      marks[i]=d===null?"?":d>10?"ok":d<5?(p.openProbe&&peakDb(acc,p.openProbe)>12?"open":"bad"):"?";
+      if(marks[i]==="?"&&confirmed.has(i))marks[i]="ok"});
+    draw();again.clear();queue=marks.map((m,i)=>m==="?"||m==="bad"?i:-1).filter(i=>i>=0);queue.length?pluckNext():report()}
+  function pluckNext(){cur=queue.shift();phase="pluck";pT=performance.now();t0=0;draw();T.innerHTML=`Keep holding it, and pluck just the <b>${STRN[cur]}</b> string on its own.`;et.textContent=`Pluck the ${STRN[cur]} string…`;speak(`Now pluck just the ${STRN[cur]} string.`)}
+  function evalPluck(){const m=pk.hit>=3?"ok":pk.open>=3?"open":"bad";
+    // one silent or muddy pluck could be a stray sound, so a string only counts as dead after two
+    if(m==="bad"&&!again.has(cur)){again.add(cur);pT=performance.now();T.innerHTML=`Didn't catch that. Pluck the <b>${STRN[cur]}</b> string once more.`;et.textContent=`Once more: the ${STRN[cur]} string…`;return}marks[cur]=m;if(m==="ok")confirmed.add(cur);queue.length?pluckNext():report()}
+  function loop(){if(fin)return;const l=level(),t=performance.now();
+    if(!t0){if(l>.03&&l>prev*2.2&&(phase==="strum"||t-pT>400)){t0=t;acc=new Float32Array(fbuf.length);frames=0;pk={hit:0,open:0}}prev=prev*.6+l*.4;return}
+    const dt=t-t0;
+    if(phase==="strum"){if(dt<120)return;
+      if(dt<800&&l>.005){an.getFloatFrequencyData(fbuf);for(let k=0;k<fbuf.length;k++)acc[k]+=10**(fbuf[k]/10);frames++;return}
+      t0=0;prev=l;if(frames>=6)evalStrum();return}
+    if(dt<60)return;
+    if(dt<750){const p=pitch();if(p){const m=midiOf(p.f),near=x=>{const d=m-x;return Math.abs(d)<.5||(Math.abs(((d%12)+18)%12-6)<.5&&Math.abs(d)<12.5)};
+      if(near(OPEN_MIDI[cur]+CH[c].f[cur]))pk.hit++;else if(CH[c].f[cur]>0&&near(OPEN_MIDI[cur]))pk.open++}return}
+    t0=0;prev=l;evalPluck()}
+  function start(){off&&off();off=null;fin=false;tries=0;confirmed.clear();cur=-1;phase="strum";t0=0;marks=plan.map(()=>null);draw();Lst.innerHTML="";row.innerHTML="";
+    T.innerHTML=s.t||`Make <b>${label(c)}</b> and strum it once. Let it ring. I'll check every string.`;
+    btn(row,"🔊 Hear "+label(c),"ghost",()=>strum(c));const m=btn(row,"Sounded right","big",()=>finish("Trusting you on that one."));
+    if(an){ear.hidden=false;ear.classList.add("live");et.textContent="Strum it…";m.className="ghost";off=listen(loop)}}
+  start();(async()=>{if(!an&&await ears()&&el.isConnected&&!fin)start()})();
+  cleanup.push(()=>off&&off());
+}
+
+/* ================= jam (song play-along) ================= */
+// high ticks sit above the range the chord detector listens to, so the beat doesn't confuse it
+function tick2(hi){const a=ctx(),o=a.createOscillator(),g=a.createGain();o.frequency.value=hi?2700:2200;g.gain.setValueAtTime(.07,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.04);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.05)}
+// "wait" mode pauses before each new chord until the mic hears it; "go" mode keeps tempo, marks each bar and adjusts the speed for next time
+function mountJam(el,s,done){
+  const key=s.key,P=PATTERNS[s.pat],ch=songChords(s.prog),sl=P.slots.length,bars=ch.length*(s.passes||2),J=jam[key]||{};
+  let mode=J.mode||"wait",speed=J.speed||.7,micOn=false,timer=null,slot=0,bar=-1,waiting=false,waitT=0,waits=[],heard=[],hits=0,off=null,running=false,prevL=0,armT=null;
+  const at=b=>ch[((b%ch.length)+ch.length)%ch.length],bpm=()=>Math.round(s.bpm*speed),ms=()=>(P.beats===6?60000:30000)/bpm();
+  const cnt=P.beats===6?["1","2","3","4","5","6"]:["1","&","2","&","3","&","4","&"];
+  el.innerHTML=`<div class="mute">${s.a?s.a+" · ":""}${s.capo||""} ${PATTERNS[s.pat].name}.</div>
+   <div class="seg"><button data-m="wait">⏸ Wait for me</button><button data-m="go">▶ Keep going</button></div><div class="mute" data-mt></div>
+   <div class="tl">${Array.from({length:bars},(_,b)=>`<span class="chip">${label(at(b))}</span>`).join("")}</div>
+   <div class="now"><div><div class="cname" data-c></div><div class="mute" data-n style="text-align:center;font-weight:900;margin-top:8px"></div></div><div data-d></div></div>
+   <div class="lane"><div class="slots" style="grid-template-columns:repeat(${sl},1fr)">${[...P.slots].map(x=>`<div class="slot${x==="."?" rest":""}">${x==="D"?"↓":x==="U"?"↑":"·"}</div>`).join("")}</div><div class="counts" style="grid-template-columns:repeat(${sl},1fr)">${cnt.map(x=>`<span>${x}</span>`).join("")}</div></div>
+   <div class="mute" style="text-align:center;font-weight:900" data-sp></div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div><div class="best" data-res></div>`;
+  const q=k=>el.querySelector(k),tl=q(".tl"),chips=[...tl.children],slotsEl=[...q(".slots").children],row=q(".row"),ear=q(".ear"),et=q("[data-e]");
+  const MT={wait:"The song pauses before each new chord until I hear you play it. Best for learning the changes.",go:"Real tempo. I mark every bar you hit and speed up as you nail it."};
+  const drawMode=()=>{el.querySelectorAll("[data-m]").forEach(b=>{b.setAttribute("aria-pressed",b.dataset.m===mode);b.disabled=running});
+    q("[data-mt]").textContent=MT[mode];q("[data-sp]").textContent=`Speed: ${bpm()} bpm (${Math.round(speed*100)}% of the record)`};
+  el.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{if(running)return;mode=b.dataset.m;J.mode=mode;jam[key]=J;save();drawMode();arm()});
+  const show=b=>{const c=at(Math.max(b,0));q("[data-c]").textContent=label(c);q("[data-d]").innerHTML=dia(c);q("[data-n]").textContent=b+1<bars?"Next: "+label(at(b+1)):"Last bar";hits=0;
+    chips.forEach((x,k)=>x.classList.toggle("on",k===b));const x=chips[Math.max(b,0)];tl.scrollLeft=x.offsetLeft-tl.clientWidth/2+x.offsetWidth/2};
+  function tick(){if(waiting)return;const x=P.slots[slot],beat=P.beats===6?(slot===0||slot===3):slot%2===0;slotsEl.forEach((d,k)=>d.classList.toggle("on",k===slot));
+    if(bar<0){if(beat)click(slot===0)}else if(micOn){if(beat)tick2(slot===0)}else{if(beat)click(slot===0);if(x!=="."&&cfg.guide)strum(at(bar),x==="D")}
+    if(++slot<sl)return;slot=0;if(bar>=0&&micOn)chips[bar].classList.add(heard[bar]?"ok":"miss");
+    if(bar+1>=bars){end();return}
+    if(mode==="wait"&&micOn&&bar>=0&&at(bar+1)!==at(bar)){waiting=true;waitT=performance.now();hits=0;slotsEl.forEach(d=>d.classList.remove("on"));
+      q("[data-c]").textContent=label(at(bar+1));q("[data-d]").innerHTML=dia(at(bar+1));q("[data-n]").textContent="⏸ Waiting for you";et.textContent=`Switch to ${label(at(bar+1))}…`;return}
+    bar++;show(bar)}
+  function resume(){waiting=false;waits.push((performance.now()-waitT)/1000);bar++;heard[bar]=true;show(bar);slot=0;clearInterval(timer);tick();timer=setInterval(tick,ms());et.textContent="Keep strumming…"}
+  function start(direct){if(running)return;clearTimeout(armT);ctx();running=true;busy=true;heard=[];waits=[];waiting=false;slot=0;chips.forEach(x=>x.classList.remove("ok","miss"));q("[data-res]").innerHTML="";drawMode();go.textContent="■ Stop";go.classList.add("stop");
+    if(direct){bar=0;heard[0]=true;show(0);et.textContent="Keep strumming…";tick()}else{bar=-1;show(0);et.textContent="Count-in…";tick()}timer=setInterval(tick,ms())}
+  function stop(){clearInterval(timer);timer=null;running=false;busy=false;waiting=false;slotsEl.forEach(d=>d.classList.remove("on"));go.textContent="▶ Start";go.classList.remove("stop");drawMode()}
+  function end(){stop();ding();if(!micOn){say(rnd(["Nice. Turn the mic on and I'll score you too.","Lovely. Again?"]));after();return}
+    const pct=Math.round(heard.filter(Boolean).length/bars*100),avg=waits.length?waits.reduce((a,b)=>a+b,0)/waits.length:null,old=speed;let msg;
+    if(mode==="go"){if(pct>=85)speed=Math.min(1,+(speed+.1).toFixed(2));else if(pct<60)speed=Math.max(.5,+(speed-.1).toFixed(2));
+      msg=`${pct}% of bars hit.`+(speed>old?` Speeding up to ${Math.round(speed*100)}%.`:speed<old?" Slowing it down a touch.":pct>=85?" Full speed. You can play this song.":" Same speed again.")}
+    else{msg=`${pct}% of bars hit.`+(avg!=null?` Your changes took ${avg.toFixed(1)} seconds on average.`:"")+(avg!=null&&avg<.8&&pct>=85?" Try Keep going mode next.":"");if(avg!=null)logRace(avg)}
+    J.speed=speed;J.last=Date.now();J.best=Math.max(J.best||0,pct);jam[key]=J;counters.jams=(counters.jams||0)+1;save();addXp(pct>=85?5:2);
+    q("[data-res]").innerHTML=[["Bars hit",pct+"%"],...(avg!=null?[["Average change",avg.toFixed(1)+"s"]]:[]),["Best",J.best+"%"]].map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join("");drawMode();say(msg);after()}
+  function after(){if(done){row.querySelector("[data-next]")||btn(row,"Next","big",done).setAttribute("data-next","");autoNext(row,done,5)}else armT=setTimeout(arm,2500)}
+  function arm(){if(!micOn||running||!el.isConnected)return;et.textContent=mode==="wait"?`Strum ${label(at(0))} to start. I'll follow you.`:"Strum once and I'll count you in."}
+  function loop(){
+    if(!running){if(mode==="wait"){if(hears(at(0))){if(++hits>3)start(true)}else hits=Math.max(0,hits-1)}
+      else{const l=level();if(l>.03&&l>prevL*2){running=true;armT=setTimeout(()=>{running=false;start(false)},700)}prevL=prevL*.6+l*.4}return}
+    if(waiting){if(hears(at(bar+1))){if(++hits>3)resume()}else hits=Math.max(0,hits-1);return}
+    if(bar>=0&&!heard[bar]){if(hears(at(bar))){if(++hits>3)heard[bar]=true}else hits=Math.max(0,hits-1)}}
+  const go=btn(row,"▶ Start","big",()=>running?stop():start(false));
+  btn(row,"🔊 Hear it","ghost",()=>{let k=0;const iv=setInterval(()=>{const x=P.slots[k%sl];if(x!==".")strum(at(k/sl|0),x==="D");if(++k>=sl*2)clearInterval(iv)},ms())});
+  if(done)btn(row,"Skip","ghost",done);
+  show(0);drawMode();
+  (async()=>{micOn=await ears();if(!el.isConnected)return;if(micOn){ear.hidden=false;ear.classList.add("live");off=listen(loop);arm()}else{mode="go";drawMode()}})();
+  cleanup.push(()=>{clearInterval(timer);clearTimeout(armT);off&&off();busy=false});
 }
 
 /* ================= curriculum ================= */
@@ -836,23 +1012,94 @@ const nextLesson=()=>LESSONS.find(l=>!done[l.id]);
 const EASY={G:"Gmini",C:"Cmaj7",F:known=>known.Fmini?"Fmini":"Fmaj7"};
 const songChords=prog=>prog.map(c=>{if(!cfg.easy||known[c]||!EASY[c])return c;const e=EASY[c];return typeof e==="function"?e(known):e});
 
+
 /* ================= runners ================= */
-const MOUNT={reps:mountReps,info:mountInfo,quiz:mountQuiz,tuner:mountTuner,notes:mountNotes,chordcheck:mountChordCheck,strum:mountStrum,race:mountRace,onemin:mountOneMin,ear:mountEar};
-function runLesson(L){
-  let i=0;const steps=L.steps.map(s=>s.song?{...s,chords:songChords(s.chords)}:s);openSheet();
-  say(rnd(["Let's go.","Fingers ready?","No rush. Let's learn."]));
-  function show(){clean();const s=steps[i],el=$("scard");el.innerHTML="";$("sprog").style.width=(i/steps.length*100)+"%";
-    el.append(h("div","stitle",L.t));const body=h("div","stack");el.append(body);
-    const next=()=>{if(s.learn&&!known[s.learn]){known[s.learn]=1;save();toast(`New chord unlocked: ${label(s.learn)} 🎸`)}i++;i>=steps.length?finish():show()};
-    MOUNT[s.type](body,s,next);$("sheet").scrollTop=0}
-  function finish(){clean();$("sprog").style.width="100%";const first=!done[L.id];done[L.id]=1;if(first)log.done[today()]=(log.done[today()]||0)+1;if(L.song)counters.songs++;save();if(first)addXp(10);else checkBadges();ding();
-    const el=$("scard");el.innerHTML="";el.append(h("div","stitle","Lesson done!"));const nl=nextLesson();
-    el.append(h("div","body",(first?"+10 ⭐ ":"")+(nl?`Next up: <b>${nl.t}</b>.`:"That's the whole course. You're a guitarist now.")));
-    say(first?rnd(["Proper work.","Another one down.","Getting dangerous now.","Ed Sheeran's getting nervous."]):"Repetition is how it sticks.");
-    if(sessionMin()>=25)el.append(h("p","mute","You've played a good while today. Fingers build calluses while resting, so rest is part of practice."));
-    const r=h("div","row");el.append(r);if(nl)btn(r,"Next lesson","big",()=>runLesson(nl));btn(r,"Done for now","ghost",closeSheet)}
+const MOUNT={reps:mountReps,info:mountInfo,quiz:mountQuiz,tuner:mountTuner,notes:mountNotes,chordcheck:mountDoctor,strum:mountStrum,race:mountRace,onemin:mountOneMin,ear:mountEar,
+  jam:(el,s,done)=>mountJam(el,{...SONGS[s.song],key:s.song,passes:s.passes},done)};
+const lessonSteps=L=>L.steps.map(s=>s.song?{...s,chords:songChords(s.chords)}:s);
+// what Bruv says out loud when a step opens, so you can follow without looking
+function narrate(s){const L=label;let t="";
+  switch(s.type){
+    case "info":t=s.t;break;
+    case "quiz":t=s.q;break;
+    case "tuner":t="Tuning first. Pluck one string at a time and I'll tell you which way to turn the peg.";break;
+    case "notes":t=(s.t||"")+" Play the highlighted notes. I'm listening.";break;
+    case "chordcheck":t=`Make the ${L(s.c)} shape and strum it once. I'll check every string.`;break;
+    case "reps":t=`Lift your hand off, put the ${L(s.c)} shape back, strum. ${s.n||5} times.`;break;
+    case "strum":t=(s.t||"")+" Strum once when you're ready and I'll count you in.";break;
+    case "race":t="Change race. Strum the first chord and hold it. When you hear the beep, switch.";break;
+    case "onemin":t=`One minute changes. ${L(s.pair[0])} and ${L(s.pair[1])}. Strum ${L(s.pair[0])} to start the clock.`;break;
+    case "jam":t=`Jam time. ${SONGS[s.song].t}. Strum ${L(songChords(SONGS[s.song].prog)[0])} to start, and the song waits for every change.`;break;
+    case "ear":t=s.kind==="majmin"?"Ear training. Happy or sad?":"Ear training. Which string is it?";break}
+  $("ssbub").textContent=t.replace(/<[^>]+>/g,"").slice(0,140);speak(t)}
+function markLesson(L){const first=!done[L.id];done[L.id]=1;if(first)log.done[today()]=(log.done[today()]||0)+1;if(L.song)counters.songs++;save();if(first)addXp(10);else checkBadges();return first}
+// plays a flat list of steps; {mark:id} entries silently tick a lesson off when reached
+function runSteps(title,steps,onFinish){let i=0;openSheet();
+  function show(){clean();const s=steps[i];if(!s){onFinish();return}
+    if(s.mark){const L=LESSONS.find(l=>l.id===s.mark);if(markLesson(L))toast(`Lesson done: ${L.t} +10 ⭐`);i++;show();return}
+    const el=$("scard");el.innerHTML="";$("sprog").style.width=(i/steps.length*100)+"%";
+    el.append(h("div","stitle",(s.sec?`<span class="sec">${s.sec}</span>`:"")+title));const body=h("div","stack");el.append(body);
+    const next=()=>{if(s.learn&&!known[s.learn]){known[s.learn]=1;save();toast(`New chord unlocked: ${label(s.learn)} 🎸`)}i++;show()};
+    MOUNT[s.type](body,s,next);narrate(s);$("sheet").scrollTop=0}
   show()}
+function runLesson(L){runSteps(L.t,lessonSteps(L),()=>{clean();$("sprog").style.width="100%";const first=markLesson(L);ding();
+  const el=$("scard");el.innerHTML="";el.append(h("div","stitle","Lesson done!"));const nl=nextLesson();
+  el.append(h("div","body",(first?"+10 ⭐ ":"")+(nl?`Next up: <b>${nl.t}</b>.`:"That's the whole course. You're a guitarist now.")));
+  say(first?rnd(["Proper work.","Another one down.","Getting dangerous now.","Ed Sheeran's getting nervous."]):"Repetition is how it sticks.");
+  if(sessionMin()>=25)el.append(h("p","mute","You've played a good while today. Fingers build calluses while resting, so rest is part of practice."));
+  const r=h("div","row");el.append(r);if(nl)btn(r,"Next lesson","big",()=>runLesson(nl));btn(r,"Done for now","ghost",closeSheet)})}
 function runTool(title,mount){openSheet();clean();$("sprog").style.width="0";say(rnd(["Practice makes permanent.","Let's work.","Go on then."]));const el=$("scard");el.innerHTML="";el.append(h("div","stitle",title));const b=h("div","stack");el.append(b);mount(b);$("sheet").scrollTop=0}
+
+/* ================= mastery, levels, workout ================= */
+const knownChords=()=>Object.keys(known).filter(c=>CH[c]&&c!=="open");
+// 0-100: knowing it, clean String Doctor checks, fastest change into/out of it, best one-minute count
+function mastery(c){if(!known[c])return 0;let m=25+Math.min(25,(cleanN[c]||0)*5);
+  const rs=Object.entries(bests).filter(([k])=>k.split("→").includes(c)).map(x=>x[1]);if(rs.length){const b=Math.min(...rs);m+=b<1?25:b<1.5?20:b<2?15:b<3?10:5}
+  const om=Object.entries(onemin).filter(([k])=>k.split("-").includes(c)).map(x=>x[1]);if(om.length){const b=Math.max(...om);m+=b>=30?25:b>=20?18:b>=12?12:6}
+  return Math.min(100,m)}
+const LV=[[0,"Fresh Strings"],[50,"Finger Hunter"],[150,"Chord Rookie"],[300,"Strummer"],[500,"Changer"],[800,"Groove Kid"],[1200,"Campfire Hero"],[1700,"Song Slinger"],[2300,"Stage Ready"],[3000,"Bruv-Certified"]];
+const lvOf=x=>LV.reduce((a,[t],k)=>x>=t?k:a,0);
+function ring(p,txt){const r=22,C=2*Math.PI*r;return `<svg width="58" height="58" viewBox="0 0 58 58" aria-hidden="true"><circle cx="29" cy="29" r="${r}" fill="var(--paper)" stroke="var(--tan)" stroke-width="7"/><circle cx="29" cy="29" r="${r}" fill="none" stroke="${p>=80?"var(--good)":p>=50?"var(--gold)":"var(--blue)"}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C*p/100} ${C}" transform="rotate(-90 29 29)"/><text x="29" y="35" text-anchor="middle" font-size="${txt.length>3?11:16}" fill="var(--ink)">${txt}</text></svg>`}
+function weakPair(fresh){const kn=knownChords();if(fresh&&!kn.includes(fresh))kn.push(fresh);if(kn.length<2)return null;const nw=kn.at(-1),pref=["D","E","G","C","Am","Em","A","Dm"],sc=p=>onemin[p.join("-")]??onemin[[p[1],p[0]].join("-")]??-1;
+  const cand=kn.filter(c=>c!==nw&&!sameChord(c,nw)&&!(CH[c].nick&&kn.some(k=>k!==c&&sameChord(k,c)))).map(c=>[nw,c]);
+  return cand.sort((a,b)=>sc(a)-sc(b)||((pref.indexOf(a[1])+99)%99)-((pref.indexOf(b[1])+99)%99))[0]||null}
+const readySongs=()=>Object.entries(SONGS).filter(([,s])=>songChords(s.prog).every(c=>known[c])).sort((a,b)=>(jam[a[0]]?.last||0)-(jam[b[0]]?.last||0));
+// today's session: tune, warm up, the next lesson, check your weakest chord, drill a change, jam a song
+function buildWorkout(){const steps=[],plan=[],add=(sec,arr,mins)=>{plan.push({sec,mins});arr.forEach(s=>steps.push(s.mark?s:{...s,sec}))};
+  if(done.tune&&st.tunedOn!==today())add("Tune",[{type:"tuner"}],2);
+  if(done.spider){const sp=LESSONS.find(l=>l.id==="spider")?.steps.find(s=>s.type==="notes");if(sp)add("Warm-up",[sp],1)}
+  const nl=nextLesson();if(nl)add(nl.t,[...lessonSteps(nl),{mark:nl.id}],nl.song?4:5);
+  const fresh=nl?.steps.find(s=>s.learn)?.learn,rev=knownChords().filter(c=>c!==fresh).sort((a,b)=>mastery(a)-mastery(b))[0];
+  if(rev)add("Check "+label(rev),[{type:"chordcheck",c:rev}],1);
+  const pr=weakPair(fresh);if(pr)add(pr.map(label).join(" ⇄ "),[{type:"onemin",pair:pr}],1.5);
+  const rs=readySongs()[0];if(rs)add("Jam: "+rs[1].t,[{type:"jam",song:rs[0],passes:1}],3);
+  return {steps,plan,mins:Math.round(plan.reduce((a,p)=>a+p.mins,0))}}
+function runWorkout(){const W0=buildWorkout(),xp0=st.xp,m0=sessionMin();if(!W0.steps.length){runLesson(nextLesson()||LESSONS[0]);return}
+  ears();runSteps("Workout",W0.steps,()=>{clean();$("sprog").style.width="100%";ding();counters.workouts=(counters.workouts||0)+1;addXp(10);save();
+    const el=$("scard");el.innerHTML="";el.append(h("div","stitle","Workout done 💪"));
+    el.append(h("div","best",[["Minutes",Math.max(1,Math.round(sessionMin()-m0))],["Stars earned","+"+(st.xp-xp0)],["Streak",st.streak+(st.streak===1?" day":" days")],["Workouts done",counters.workouts]].map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join("")));
+    say(rnd(["Workout done. That's how you get good.","Proper session. Same time tomorrow?","Done. Your fingers will thank you tomorrow."]));
+    const r=h("div","row");el.append(r);btn(r,"Done","big",closeSheet)})}
+
+/* ================= screens ================= */
+function drawHome(){const W0=buildWorkout(),m=Math.floor(sessionMin()),nl=nextLesson(),n=Object.keys(done).length;
+  $("wplan").innerHTML=W0.plan.map(p=>`<span class="chip">${p.sec}</span>`).join("");$("wmin").textContent="~"+Math.max(5,W0.mins)+" min";$("wgo").onclick=runWorkout;
+  $("goalTxt").textContent=`${m} of ${cfg.goal} minutes today`;$("goalBar").style.width=Math.min(100,m/cfg.goal*100)+"%";
+  $("cont").hidden=!nl;if(nl){$("cont").textContent="Or just the next lesson: "+nl.t;$("cont").onclick=()=>runLesson(nl)}
+  const kn=knownChords();$("rings").innerHTML=kn.length?kn.map(c=>`<button class="ringc" data-c="${c}">${ring(mastery(c),c.length>3?label(c).replace("Easy ","~"):c)}<span>${mastery(c)}%</span></button>`).join(""):`<p class="mute">Your first chord shows up here after the Em lesson.</p>`;
+  $("rings").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>runTool("String doctor: "+label(b.dataset.c),el=>mountDoctor(el,{c:b.dataset.c})));
+  const li=lvOf(st.xp),nx=LV[li+1];$("lvname").textContent=`Lv ${li+1} · ${LV[li][1]}`;$("lvnext").textContent=nx?`${nx[0]-st.xp} ⭐ to ${nx[1]}`:"Max level";$("lvbar").style.width=(nx?(st.xp-LV[li][0])/(nx[0]-LV[li][0])*100:100)+"%";
+  $("journey").innerHTML=`<b>${n}/${LESSONS.length}</b> lessons · <b>${kn.length}</b> chords · <b>${st.streak}</b>-day streak<br>${nl?`You're in <b>${UNITS[nl.unit].t}</b>.`:"Course complete. Keep adding songs!"}`;
+  const hr=new Date().getHours();
+  $("hsay").textContent=m>=cfg.goal?"Goal done today. Anything extra is a bonus.":!n?"Yo Tony. Zero to playing songs, and I'll teach you all of it. Hit Start.":st.last===today()?"Back for more? Respect.":(hr<12?"Morning. Quick workout before the day takes over.":hr<18?"Afternoon session. Phone on the stand, let's go.":"Evening jam. Fingers ready?")}
+function playSong(s,key){runTool(s.t,el=>mountJam(el,{...s,key}))}
+function drawSongs(){const L=$("songlist");L.innerHTML="";const all=[...Object.entries(SONGS),...custom.map((s,i)=>["c:"+s.t,{...s,ci:i}])];
+  all.forEach(([key,s])=>{const need=[...new Set(songChords(s.prog))].filter(c=>!known[c]),J=jam[key]||{},c=h("div","card songc");
+    c.innerHTML=`<div class="row"><h2>${s.t}</h2><span class="mute">${s.a||"Your song"}</span></div><div class="meta">${[...new Set(songChords(s.prog))].map(x=>`<span class="chip${known[x]?"":" miss"}">${label(x)}</span>`).join("")}</div>
+      <div class="mute">${PATTERNS[s.pat].name} · ${s.bpm} bpm${J.best!=null?` · best ${J.best}% at ${Math.round((J.speed||.7)*100)}% speed`:""}</div>`;
+    const r=h("div","row");c.append(r);if(need.length)r.append(h("span","mute",`🔒 Learn ${need.map(label).join(", ")} first`));
+    btn(r,need.length?"Try anyway":"▶ Jam","big"+(need.length?" gold":""),()=>playSong(s,key));
+    if(s.ci!==undefined)btn(r,"Delete","ghost",()=>{custom.splice(s.ci,1);save();drawSongs()});L.append(c)})}
 
 /* ================= time tracking ================= */
 const sessionMin=()=>st.mins[today()]||0;
@@ -885,22 +1132,8 @@ const BADGES=[
  ["rec","🎙️","Heard yourself",()=>counters.rec>=1],
 ];
 function checkBadges(){BADGES.forEach(([id,i,t,f])=>{if(!badges[id]&&f()){badges[id]=1;save();setTimeout(()=>toast(`Badge unlocked: ${i} ${t}`),900)}})}
+BADGES.push(["doc","🩺","Clean chord",()=>Object.values(cleanN).some(v=>v>=1)],["work1","💪","First workout",()=>counters.workouts>=1],["work10","🏋️","10 workouts",()=>counters.workouts>=10],["jam1","🎧","First jam",()=>counters.jams>=1]);
 
-/* ================= screens ================= */
-function drawHome(){
-  const nl=nextLesson(),m=Math.floor(sessionMin());
-  $("goalTxt").textContent=`${m} of ${cfg.goal} minutes today`;$("goalBar").style.width=Math.min(100,m/cfg.goal*100)+"%";
-  const weak=Object.entries(bests).sort((a,b)=>b[1]-a[1])[0];const items=[];
-  if(done.tune&&st.tunedOn!==today())items.push({t:"Tune up",go:()=>runTool("Tuner",el=>mountTuner(el,{},closeSheet))});
-  if(nl)items.push({t:"Lesson: "+nl.t,go:()=>runLesson(nl),main:true});
-  if(weak&&weak[1]>=1.2)items.push({t:`Speed up ${weak[0].split("→").map(label).join(" → ")} (best ${weak[1].toFixed(1)}s)`,go:()=>runTool("Change race",el=>mountRace(el,{pairs:[weak[0].split("→")]}))});
-  const ready=Object.entries(SONGS).filter(([k])=>done["s-"+k]);if(ready.length){const s=rnd(ready)[1];items.push({t:"Play "+s.t,go:()=>playSong(s)})}
-  $("plan").innerHTML="";items.forEach(x=>{const li=h("li","",`<span>▶</span><b>${x.t}</b>`);li.onclick=x.go;$("plan").append(li)});
-  const main=items.find(x=>x.main)||items[0];$("cont").textContent=main?(main.main?"Continue: "+nl.t:main.t):"Free practice";$("cont").onclick=main?main.go:()=>tab("practice");
-  const n=Object.keys(done).length;$("pathBar").style.width=(n/LESSONS.length*100)+"%";
-  $("journey").innerHTML=`<b>${n}/${LESSONS.length}</b> lessons · <b>${Object.keys(known).length-1}</b> chords · <b>${st.streak}</b>-day streak<br>${nl?`You're in <b>${UNITS[nl.unit].t}</b>.`:"Course complete. Keep adding songs!"}`;
-  const hr=new Date().getHours();
-  $("hsay").textContent=m>=cfg.goal?"Goal done today. Anything extra is a bonus.":!n?"Yo Tony. Zero to playing songs, and I'll teach you all of it. Start with lesson 1.":st.last===today()?"Back for more? Respect.":(hr<12?"Morning. Quick session before the day takes over.":hr<18?"Afternoon session. Let's go.":"Evening jam. Fingers ready?")}
 function drawWeek(){
   const days=[...Array(7)].map((_,i)=>new Date(Date.now()-(6-i)*864e5)),key=d=>d.toDateString();
   const mins=days.map(d=>st.mins[key(d)]||0),max=Math.max(cfg.goal,...mins);
@@ -917,6 +1150,7 @@ function drawPractice(){const T=$("tools");T.innerHTML="";const kn=Object.keys(k
   for(let a=0;a<kn.length;a++)for(let b=a+1;b<kn.length;b++)pairs.push([kn[a],kn[b]]);
   const tools=[
     ["🎚️","Tuner","Tune every session",true,()=>runTool("Tuner",el=>mountTuner(el,{}))],
+    ["🩺","String doctor","Finds your dead string",knownChords().length>0,()=>runTool("String doctor",el=>{const s=h("select","");s.setAttribute("aria-label","Chord");s.innerHTML=knownChords().map(c=>`<option value="${c}">${label(c)}</option>`).join("");s.value=knownChords().at(-1);el.append(s);const box=h("div","stack");el.append(box);const go=()=>{clean();box.innerHTML="";mountDoctor(box,{c:s.value})};s.onchange=go;go()})],
     ["⏲️","Metronome","Keep perfect time",true,()=>runTool("Metronome",mountMetronome)],
     ["🥁","Strum trainer","Patterns + timing score",!!done.strumopen,()=>runTool("Strum trainer",el=>{const sel=h("div","grid2");sel.innerHTML=`<select aria-label="Pattern">${Object.entries(PATTERNS).map(([k,p])=>`<option value="${k}">${p.name}</option>`).join("")}</select><select aria-label="Chord">${Object.keys(known).map(c=>`<option value="${c}">${label(c)}</option>`).join("")}</select>`;el.append(sel);const box=h("div","stack");el.append(box);
       const go=()=>{clean();box.innerHTML="";mountStrum(box,{pat:sel.children[0].value,chords:[sel.children[1].value],bpm:60,bars:8})};sel.onchange=go;go()})],
@@ -929,15 +1163,7 @@ function drawPractice(){const T=$("tools");T.innerHTML="";const kn=Object.keys(k
     ["🪶","Picking patterns","Fingerpicking drills",!!done.pickbasics,()=>runLesson(LESSONS.find(l=>l.id==="arpgc"))],
   ];
   tools.forEach(([i,t,d,ok,fn])=>{const b=h("button","tool"+(ok?"":" locked"),`<span class="i">${i}</span><b>${t}</b><span class="mute">${ok?d:"🔒 Unlocks in Learn"}</span>`);b.onclick=()=>ok?fn():($("psay").textContent="Learn the basics first. It unlocks along the path.");T.append(b)});
-  const lib=$("lib");lib.innerHTML="";Object.keys(CH).filter(c=>c!=="open").forEach(c=>{const k=known[c];const b=h("button","libc",`<b>${label(c)}</b>${dia(c)}<span class="mute">${k?"tap to practise":"🔒 tap to hear"}</span>`);b.style.opacity=k?1:.5;b.onclick=()=>{strum(c);if(k)runTool(label(c),el=>mountChordCheck(el,{c}))};lib.append(b)})}
-function playSong(s){runTool(s.t,el=>{el.append(h("div","body",`<small>${s.a?s.a+" · ":""}${s.capo||""}</small>`));const box=h("div","stack");el.append(box);
-  mountStrum(box,{pat:s.pat,chords:songChords(s.prog),bpm:s.bpm,bars:s.prog.length*4})})}
-function drawSongs(){const L=$("songlist");L.innerHTML="";const all=[...Object.values(SONGS),...custom.map((s,i)=>({...s,ci:i}))];
-  all.forEach(s=>{const need=[...new Set(songChords(s.prog))].filter(c=>!known[c]);const c=h("div","card");
-    c.innerHTML=`<div class="row" style="justify-content:space-between"><h2>${s.t}</h2><span class="mute">${s.a||"Your song"}</span></div><div class="mute">${[...new Set(s.prog)].map(label).join(" · ")} · ${PATTERNS[s.pat].name} · ${s.bpm} bpm</div>`;
-    const r=h("div","row");c.append(r);if(need.length)r.append(h("span","mute",`🔒 Learn ${need.map(label).join(", ")} first`));
-    btn(r,need.length?"Try anyway":"▶ Play","big"+(need.length?" gold":""),()=>playSong(s));
-    if(s.ci!==undefined)btn(r,"Delete","ghost",()=>{custom.splice(s.ci,1);save();drawSongs()});L.append(c)})}
+  const lib=$("lib");lib.innerHTML="";Object.keys(CH).filter(c=>c!=="open").forEach(c=>{const k=known[c];const b=h("button","libc",`<b>${label(c)}</b>${dia(c)}<span class="mute">${k?`🩺 ${mastery(c)}% · check it`:"🔒 tap to hear"}</span>`);b.style.opacity=k?1:.5;b.onclick=()=>{strum(c);if(k)runTool("String doctor: "+label(c),el=>mountDoctor(el,{c}))};lib.append(b)})}
 $("cs-pat").innerHTML=Object.entries(PATTERNS).map(([k,p])=>`<option value="${k}">${p.name}</option>`).join("");$("cs-pat").value="folk";
 $("cs-add").onclick=()=>{const name=$("cs-name").value.trim()||"My song",raw=$("cs-ch").value.trim().split(/[\s,|]+/).filter(Boolean);
   const prog=raw.map(x=>Object.keys(CH).find(c=>c!=="open"&&c.toLowerCase()===x.toLowerCase())),bad=raw.filter((x,i)=>!prog[i]);
@@ -948,9 +1174,10 @@ function drawMe(){
   $("mestats").innerHTML=[["Total practice",Math.round(st.totalSec/60)+" min"],["Day streak",st.streak],["Stars",st.xp],["Lessons",Object.keys(done).length+"/"+LESSONS.length],["Chords known",Object.keys(known).length-1],["Songs finished",counters.songs],
     ...Object.entries(bests).map(([k,v])=>[k.split("→").map(label).join(" → "),v.toFixed(2)+"s"]),...Object.entries(onemin).map(([k,v])=>[k.split("-").map(label).join(" ⇄ ")+" (1 min)",v])].map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join("");
   $("badges").innerHTML=BADGES.map(([id,i,t])=>`<div class="badge ${badges[id]?"":"off"}"><span class="i">${i}</span>${t}</div>`).join("");
-  $("set-left").checked=cfg.left;$("set-goal").value=cfg.goal;$("set-guide").checked=cfg.guide;$("set-easy").checked=cfg.easy}
+  $("set-left").checked=cfg.left;$("set-goal").value=cfg.goal;$("set-guide").checked=cfg.guide;$("set-easy").checked=cfg.easy;$("set-voice").checked=cfg.voice;$("set-view").value=cfg.view}
 $("set-left").onchange=e=>{cfg.left=e.target.checked;save();refresh()};$("set-goal").onchange=e=>{cfg.goal=+e.target.value;save()};
 $("set-guide").onchange=e=>{cfg.guide=e.target.checked;save()};$("set-easy").onchange=e=>{cfg.easy=e.target.checked;save()};
+$("set-voice").onchange=e=>{cfg.voice=e.target.checked;save();cfg.voice?speak("Alright Tony. I'll talk you through it."):hush()};$("set-view").onchange=e=>{cfg.view=e.target.value;save();refresh()};
 try{const t=localStorage.getItem("gg2_remind");if(t)$("set-time").value=t}catch{}
 $("set-remind").onclick=()=>{const [hh,mm]=$("set-time").value.split(":").map(Number),d=new Date();d.setHours(hh,mm,0,0);if(d<new Date())d.setDate(d.getDate()+1);
   try{localStorage.setItem("gg2_remind",$("set-time").value)}catch{}
@@ -960,6 +1187,14 @@ $("set-remind").onclick=()=>{const [hh,mm]=$("set-time").value.split(":").map(Nu
     "BEGIN:VALARM","TRIGGER:PT0M","ACTION:DISPLAY","DESCRIPTION:Bruv says: guitar time 🎸","END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n");
   const a=document.createElement("a");a.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(ics);a.download="guitar-gym-reminder.ics";document.body.append(a);a.click();a.remove();
   toast("Opening your calendar. Tap Add to save the daily reminder.")};
+$("set-sync").onclick=async()=>{const d={};try{Object.keys(localStorage).filter(k=>k.startsWith("gg2_")).forEach(k=>d[k]=localStorage.getItem(k))}catch{}
+  const url=location.origin+location.pathname+"#p="+btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+  try{if(navigator.share){await navigator.share({title:"My Guitar Gym progress",url});return}}catch(e){if(e?.name==="AbortError")return}
+  try{await navigator.clipboard.writeText(url);toast("Link copied. Paste it into Safari on your other device.")}catch{prompt("Copy this link:",url)}};
+(()=>{const m=location.hash.match(/^#p=(.+)/);if(!m)return;history.replaceState(null,"",location.pathname);
+  try{const d=JSON.parse(decodeURIComponent(escape(atob(m[1]))));if(!confirm("Load the progress from your other device? This replaces the progress on this one."))return;
+    Object.keys(localStorage).filter(k=>k.startsWith("gg2_")).forEach(k=>localStorage.removeItem(k));
+    Object.entries(d).forEach(([k,v])=>k.startsWith("gg2_")&&localStorage.setItem(k,v));location.reload()}catch{toast("That progress link looks broken.")}})();
 let resetArm=false;$("set-reset").onclick=e=>{if(!resetArm){resetArm=true;e.target.textContent="Tap again to wipe everything";setTimeout(()=>{resetArm=false;e.target.textContent="Reset all progress"},3000);return}
   try{Object.keys(localStorage).filter(k=>k.startsWith("gg2_")).forEach(k=>localStorage.removeItem(k))}catch{}location.reload()};
 const FAQ=[
