@@ -1,0 +1,169 @@
+/* Song Studio: Apple Music-style album tiles, and a jam stage painted in the song's own cover colours (--art)
+   mixed into deep blue with an amber glow. Laptops get two columns: chord and controls on the left, a crisp glass lyric sheet on the right. */
+
+/* library */
+.sk-lib{gap:18px}
+.sk-libhead{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.sk-libhead > div{flex:1 1 260px;min-width:0;display:grid;gap:4px}
+.sk-libhead h2{font-size:24px!important;letter-spacing:-.035em;font-weight:800!important}
+.sk-add{flex:0 0 auto!important;text-align:center;cursor:pointer;padding:12px 20px!important}
+.sk-empty{border:1.5px dashed var(--line2);border-radius:18px;padding:28px;text-align:center;font-weight:600;color:var(--text2);background:rgba(255,255,255,.5)}
+.sk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(156px,1fr));gap:24px 20px}
+@media (max-width:420px){.sk-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px}}
+.sk-card{display:grid;gap:2px;align-content:start;min-width:0}
+.sk-card b{font-weight:700;font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:10px}
+.sk-card .mute{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sk-meta{font:600 12px var(--round);color:var(--text3)}
+.sk-edit{justify-self:start;margin-top:8px;padding:5px 13px!important;font-size:12.5px!important;border-radius:99px!important}
+.sk-play{position:relative;padding:0;border:0;background:none;display:block;border-radius:18px}
+.sk-play:active{transform:scale(.98)}
+.sk-art{width:100%;aspect-ratio:1;object-fit:cover;border-radius:18px;display:block;background:#fff;box-shadow:0 22px 34px -18px rgba(15,31,77,.55),0 0 0 1px rgba(255,255,255,.7)}
+.sk-play .sk-art{transition:transform .3s var(--ease),box-shadow .3s}
+.sk-play:hover .sk-art{transform:translateY(-4px) rotate(-.6deg);box-shadow:0 30px 44px -18px rgba(15,31,77,.6),0 0 0 1px #fff}
+.sk-art.sm{width:60px;height:60px;border-radius:14px;flex:none}
+.sk-nocover{display:grid;place-items:center;background:radial-gradient(120% 120% at 15% 10%,color-mix(in srgb,var(--art) 55%,#fff),var(--art) 50%,color-mix(in srgb,var(--art) 60%,#0f1f4d));
+  color:#fff;font:900 58px var(--round);letter-spacing:-.05em;text-shadow:0 6px 20px rgba(0,0,0,.25)}
+.sk-art.sm.sk-nocover{font-size:26px}
+.sk-pbtn{position:absolute;right:10px;bottom:10px;width:42px;height:42px;border-radius:50%;background:#fff;color:#111;display:grid;place-items:center;padding-left:2px;
+  box-shadow:0 10px 20px -6px rgba(0,0,0,.4);opacity:0;transform:translateY(6px) scale(.9);transition:opacity .2s,transform .25s var(--ease)}
+.sk-pbtn svg{width:20px;height:20px}
+.sk-play:hover .sk-pbtn,.sk-play:focus-visible .sk-pbtn{opacity:1;transform:none}
+@media (hover:none){.sk-pbtn{opacity:1;transform:none}}
+body.sk-drop::after{content:"Drop the song. Bruv's listening.";position:fixed;inset:16px;z-index:99;display:grid;place-items:center;border:2.5px dashed var(--orange);border-radius:30px;
+  background:rgba(255,255,255,.75);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);font:850 clamp(28px,4vw,48px) var(--sans);letter-spacing:-.04em;color:var(--text);pointer-events:none}
+
+/* import */
+.sk-import{display:grid;gap:16px;padding:8px 0}
+.sk-file{font-weight:600;font-size:16px;word-break:break-all;color:var(--text2)}
+.sk-bar{height:8px;border-radius:99px;overflow:hidden;background:rgba(16,18,40,.08)}
+.sk-bar i{display:block;height:100%;width:0;border-radius:99px;background:var(--sunset);transition:width .25s var(--ease)}
+.sk-step{font:850 26px var(--sans);letter-spacing:-.035em}
+
+/* editor */
+.sk-edhead{display:flex;gap:18px;align-items:flex-start}
+.sk-edhead > .sk-art{width:132px;flex:none}
+.sk-sect{display:grid;gap:12px;border-top:1px solid var(--line);padding-top:18px}
+.sk-sect h3{font:750 19px var(--sans);letter-spacing:-.025em;margin:0}
+.sk-facts{display:flex;flex-wrap:wrap;gap:8px}
+.sk-facts span{background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px 13px;font-size:13px;color:var(--text2);box-shadow:0 4px 12px -8px rgba(16,18,40,.3)}
+.sk-facts b{font:850 19px var(--round);color:var(--text);margin-right:2px;letter-spacing:-.02em}
+.sk-caps{display:flex;flex-wrap:wrap;gap:3px;background:rgba(16,18,40,.07);border-radius:12px;padding:3px;justify-self:start}
+.sk-caps button{min-width:44px;padding:7px 11px;border-radius:9px;font-weight:650;font-size:13.5px;color:var(--text2)}
+.sk-caps button[aria-pressed="true"]{background:var(--sunset);color:#fff;box-shadow:0 6px 14px -6px rgba(255,140,0,.6)}
+.sk-shapes{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sk-wave{height:64px;border-radius:14px;background:#17142b;overflow:hidden;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.sk-wave canvas{width:100%;height:100%;display:block}
+.sk-tools{flex-wrap:wrap}
+.sk-tools .ghost{flex:1 1 auto}
+.sk-tap{position:sticky;top:8px;z-index:3;background:rgba(255,255,255,.9);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid var(--edge);border-radius:22px;padding:16px;display:grid;gap:12px;box-shadow:var(--shadow)}
+.sk-tapnow{font-weight:600;font-size:15px;display:grid;gap:2px}
+.sk-tapnow b{font:900 36px var(--round);letter-spacing:-.04em;background:var(--sunset);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sk-tapnow span{color:var(--text2);font-size:14px}
+.sk-tapbtn{height:128px;border-radius:20px;background:var(--sunset);color:#fff;font:900 42px/1 var(--round);letter-spacing:-.03em;touch-action:manipulation;box-shadow:0 18px 36px -14px rgba(255,140,0,.7)}
+.sk-tapbtn small{font:600 13px var(--sans);letter-spacing:0;opacity:.9}
+.sk-tapbtn:active{transform:scale(.97);filter:brightness(1.1)}
+
+/* the stage: the song's colours in a vivid gradient, white type, glass panels */
+.sk-stage{--art:#7a4a22;position:relative;min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:20px;border-radius:30px;color:#fff;overflow:hidden;isolation:isolate;
+  background:radial-gradient(70% 70% at 100% 0%,rgba(255,170,0,.35),transparent 60%),radial-gradient(80% 70% at 0% 0%,rgba(255,255,255,.18),transparent 60%),
+    linear-gradient(140deg,color-mix(in srgb,var(--art) 16%,#2f6bff) 0%,color-mix(in srgb,var(--art) 14%,#1d3fa8) 55%,color-mix(in srgb,var(--art) 12%,#0f1f4d) 100%);
+  box-shadow:0 40px 80px -36px rgba(15,31,77,.65),inset 0 1px 0 rgba(255,255,255,.3);transition:background 1s}
+.sk-stage::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1}
+.sk-stage::after{content:"";position:absolute;width:520px;height:520px;right:-180px;top:-220px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.22),transparent 65%);pointer-events:none;z-index:-1}
+.sk-stage.beat::before{animation:sk-beat .3s ease-out}
+.sk-stage.down::before{animation:sk-down .45s ease-out}
+@keyframes sk-beat{0%{box-shadow:inset 0 0 0 2px rgba(255,255,255,.45)}100%{box-shadow:inset 0 0 0 0 transparent}}
+@keyframes sk-down{0%{box-shadow:inset 0 0 0 4px rgba(255,255,255,.75),inset 0 0 80px rgba(255,255,255,.25)}100%{box-shadow:inset 0 0 0 0 transparent}}
+.sk-top{display:flex;align-items:center;gap:14px;min-width:0}
+.sk-top .sk-art{box-shadow:0 10px 24px -8px rgba(0,0,0,.4),0 0 0 2px rgba(255,255,255,.5)}
+.sk-ti{display:grid;min-width:0;flex:1}
+.sk-ti b{font-weight:800;font-size:19px;letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 10px rgba(0,0,0,.15)}
+.sk-ti span{font-size:14px;font-weight:500;color:rgba(255,255,255,.85)}
+.sk-capo{font:800 12px var(--sans);letter-spacing:.1em;background:#fff;color:#1a1020;border-radius:10px;padding:7px 11px;flex:none;box-shadow:0 8px 18px -8px rgba(0,0,0,.35)}
+.sk-now{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
+.sk-ch{display:grid;gap:10px;min-width:0}
+.sk-chord{font:900 clamp(66px,19vw,132px)/.9 var(--round);letter-spacing:-.06em;color:#fff;white-space:nowrap;text-shadow:0 10px 40px rgba(5,15,50,.4),0 2px 0 rgba(0,0,0,.06)}
+.sk-chord.long{font-size:clamp(44px,11vw,90px)}
+.sk-chord.unk{opacity:.9}
+.sk-chord.pop{animation:sk-pop .42s var(--ease)}
+@keyframes sk-pop{0%{transform:translateY(10px) scale(.92)}100%{transform:none}}
+.sk-next{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sk-next span{font:800 11px var(--sans);letter-spacing:.14em;color:rgba(255,255,255,.75)}
+.sk-next b{font:850 26px var(--round);letter-spacing:-.03em}
+.sk-dots{display:flex;gap:6px}
+.sk-dots i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.55)}
+.sk-dots i.soon{background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.3)}
+.sk-dia{background:#fff;border-radius:22px;padding:12px;box-shadow:0 20px 40px -18px rgba(15,31,77,.5);color:var(--text)}
+.sk-dia svg{display:block;width:clamp(96px,24vw,150px);height:auto}
+.sk-nodia{width:120px;padding:24px 8px;text-align:center;font-weight:600;font-size:13px;color:var(--text2)}
+.sk-wait{background:#fff;color:var(--text);border-radius:22px;padding:16px 20px;display:grid;gap:2px;font-weight:650;font-size:15px;box-shadow:0 24px 44px -18px rgba(15,31,77,.55);animation:sk-throb 1.4s ease-in-out infinite}
+.sk-wait b{font:900 38px/1.05 var(--round);letter-spacing:-.045em;background:var(--sunset);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sk-wait span{font-size:13.5px;font-weight:550;color:var(--text2)}
+@keyframes sk-throb{50%{transform:scale(1.015)}}
+
+/* lyrics: a crisp glass sheet, current words lit in the sunset gradient */
+.sk-stage .sk-lyrics{background:rgba(255,255,255,.9);color:var(--text);border-radius:24px;box-shadow:0 30px 60px -30px rgba(15,31,77,.55),inset 0 1px 0 #fff;padding:6px 18px}
+.sk-lyrics{position:relative;max-height:min(40vh,340px);overflow-y:auto;scroll-behavior:smooth;display:grid;align-content:start;gap:14px;scrollbar-width:none}
+.sk-lyrics::-webkit-scrollbar{display:none}
+.sk-lyrics::before,.sk-lyrics::after{content:"";display:block;height:28px}
+.sk-h{font:800 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--violet);margin-top:6px}
+.sk-l{display:flex;flex-wrap:wrap;align-items:flex-end;font:750 20px/1.28 var(--sans);letter-spacing:-.025em;color:#b5b7c6;cursor:pointer;transition:color .25s,transform .3s var(--ease);transform-origin:left center}
+.sk-l:hover{color:#8b8ea3}
+.sk-l.cur{color:var(--text);transform:scale(1.035)}
+.sk-s{display:inline-flex;flex-direction:column;white-space:pre-wrap;border-radius:8px;padding:0 1px;transition:background .15s}
+.sk-s b{font:800 12px var(--round);letter-spacing:0;color:var(--violet);min-height:16px}
+.sk-l.cur .sk-s.past{color:#6c6f86}
+.sk-l .sk-s.on{background:var(--sunset);color:#1d1300;box-shadow:0 0 0 4px rgba(255,149,0,.2),0 10px 24px -8px rgba(255,140,0,.6);border-radius:9px}
+.sk-l .sk-s.on b{color:#1d1300}
+.sk-light{background:#fff;border-radius:18px;padding:12px 16px;border:1px solid var(--line);max-height:300px}
+.sk-chips{display:flex;gap:6px;overflow-x:auto;padding:4px 2px;scroll-behavior:smooth}
+.sk-chip{flex:none;font:850 18px var(--round);color:#fff;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:8px 14px;letter-spacing:-.02em}
+.sk-chip.on{background:#fff;color:var(--text);border-color:#fff;box-shadow:0 10px 20px -8px rgba(0,0,0,.3)}
+
+/* transport */
+.sk-wave.dark{height:50px;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}
+.sk-time{display:flex;justify-content:space-between;font:650 12px var(--round);color:rgba(255,255,255,.85);margin-top:-10px;font-variant-numeric:tabular-nums}
+.sk-transport{display:flex;align-items:center;justify-content:center;gap:14px}
+.sk-transport button{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.22);color:#fff;display:grid;place-items:center;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.sk-transport button:hover{background:rgba(255,255,255,.34)}
+.sk-transport button[aria-pressed="true"]{background:#fff;color:#1a1020}
+.sk-transport .sk-main{width:76px;height:76px;background:#fff;color:#1a1020;box-shadow:0 18px 36px -12px rgba(15,31,77,.55)}
+.sk-transport .sk-main:hover{background:#fff;transform:scale(1.05)}
+.sk-stage.waiting .sk-main{animation:sk-throb 1.4s ease-in-out infinite}
+.sk-speeds{display:flex;gap:2px;justify-content:center;flex-wrap:wrap;background:rgba(255,255,255,.2);border-radius:12px;padding:3px;justify-self:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+.sk-speeds button{padding:6px 11px;border-radius:9px;color:#fff;font:700 12.5px var(--round);font-variant-numeric:tabular-nums}
+.sk-speeds button[aria-pressed="true"]{background:#fff;color:#1a1020;box-shadow:0 4px 10px -4px rgba(0,0,0,.3)}
+.sk-stage .seg{background:rgba(255,255,255,.2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+.sk-stage .seg button{color:#fff}
+.sk-stage .seg button[aria-pressed="true"]{background:#fff;color:#1a1020}
+.sk-hint{color:rgba(255,255,255,.9)!important;text-align:center;font-size:13.5px;font-weight:500}
+.sk-stage .ear{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3);color:#fff}
+.sk-stage .ear .dot{background:rgba(255,255,255,.6)}
+.sk-keys{display:none}
+
+/* laptop: two columns, lyrics get the height */
+@media (min-width:960px){
+  .sk-stage{padding:30px 34px;gap:18px 40px;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+    grid-template-areas:"top top" "now lyr" "wait lyr" "seg lyr" "sp lyr" "ear lyr" "hint lyr" "wave wave" "time time" "tr tr" "keys keys";min-height:calc(100vh - 210px)}
+  .sk-top{grid-area:top}.sk-now{grid-area:now}.sk-wait{grid-area:wait}.sk-stage [data-lyr]{grid-area:lyr}.sk-stage .seg{grid-area:seg}.sk-speeds{grid-area:sp}
+  .sk-stage .ear{grid-area:ear}.sk-hint{grid-area:hint}.sk-wave.dark{grid-area:wave}.sk-time{grid-area:time}.sk-transport{grid-area:tr}.sk-keys{grid-area:keys}
+  .sk-now{align-self:start}
+  .sk-chord{font-size:clamp(100px,10.5vw,176px)}
+  .sk-chord.long{font-size:clamp(66px,6.6vw,116px)}
+  .sk-dia svg{width:clamp(130px,11vw,180px)}
+  .sk-stage .sk-lyrics{max-height:none;height:100%;min-height:380px;align-self:stretch;padding:8px 28px}
+  .sk-l{font-size:29px}
+  .sk-l.cur{transform:scale(1.03)}
+  .sk-s b{font-size:13px}
+  .sk-stage .sk-chips{align-self:start;flex-wrap:wrap;overflow:visible}
+  .sk-speeds{justify-self:start}
+  .sk-hint{text-align:left}
+  .sk-keys{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;font-size:12px;font-weight:500;color:rgba(255,255,255,.85)}
+  .sk-keys kbd{font:700 11px var(--sans);background:rgba(255,255,255,.9);border-radius:6px;padding:2px 6px;color:#1a1020;margin-right:4px}
+  .sk-edhead > .sk-art{width:164px}
+}
+@media (max-width:420px){.sk-stage{padding:16px;gap:14px;border-radius:24px}.sk-transport{gap:10px}.sk-transport button{width:44px;height:44px}.sk-transport .sk-main{width:66px;height:66px}.sk-edhead > .sk-art{width:88px}}
+@media (prefers-reduced-motion:reduce){.sk-stage.beat::before,.sk-stage.down::before,.sk-chord.pop,.sk-wait,.sk-stage.waiting .sk-main,.sk-l.cur{animation:none;transform:none}}
+/* a jam owns the whole sheet: no card chrome or repeated title around the stage */
+#scard:has(.sk-stage){background:none;border:0;padding:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+#scard:has(.sk-stage) > .stitle{display:none}
