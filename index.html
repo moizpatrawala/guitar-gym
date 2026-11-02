@@ -177,6 +177,18 @@ nav button[aria-selected="true"]{background:var(--gold);color:var(--ink);border-
 .seg button:disabled{opacity:.55}
 .tl{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 6px;scroll-behavior:smooth}
 .tl .chip{flex:none;min-width:52px;text-align:center;font-size:16px;padding:8px 10px;border-radius:12px}
+textarea{font:13px/1.35 ui-monospace,Menlo,monospace;color:inherit;background:var(--paper);border:2.5px solid var(--ink);border-radius:12px;padding:9px 10px;width:100%;min-height:200px;white-space:pre;overflow-x:auto}
+.lyr{position:relative;max-height:36vh;overflow-y:auto;scroll-behavior:smooth;background:var(--paper);border:2.5px solid var(--ink);border-radius:14px;padding:10px 12px;display:grid;gap:6px}
+.lyr .lh{font-family:var(--display);color:var(--fur);font-size:14px;margin-top:6px}
+.lyr .ll{display:flex;flex-wrap:wrap;align-items:flex-end;opacity:.5;transition:opacity .2s}
+.lyr .ll.cur{opacity:1}
+.lyr .ls{display:inline-flex;flex-direction:column;white-space:pre;font-weight:800;font-size:17px;border-radius:6px}
+.lyr .ls b{color:var(--blue);font-size:13px;min-height:17px}
+.lyr .ls.on{background:var(--gold)}
+.lyr .ls.nx b{color:var(--hot)}
+.now.small{min-height:0;gap:12px}
+.now.small .cname{font-size:40px}
+.now.small svg{max-height:120px;width:auto}
 .docs{display:grid;gap:8px}
 .doc{display:flex;gap:10px;align-items:flex-start;background:var(--paper);border:2.5px solid var(--ink);border-radius:12px;padding:8px 12px;font-weight:800;line-height:1.4}
 .doc b.s{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--hot);border:2px solid var(--ink)}
@@ -246,6 +258,7 @@ nav button[aria-selected="true"]{background:var(--gold);color:var(--ink);border-
       <div><label class="mute" for="cs-pat">Strum</label><select id="cs-pat"></select></div>
       <div><label class="mute" for="cs-bpm">Speed (bpm)</label><input type="number" id="cs-bpm" value="70" min="40" max="160"></div>
     </div>
+    <label class="mute" for="cs-ly">Chords + lyrics (optional). Paste a chord sheet and Jam shows the words. You can leave Chords empty if you paste one.</label><textarea id="cs-ly" spellcheck="false" autocapitalize="off" placeholder="[Verse 1]&#10;Am          C&#10;Words go here..."></textarea>
     <div class="mute" id="cs-msg"></div>
     <button class="big" id="cs-add">Add song</button>
   </div>
@@ -342,10 +355,11 @@ let onemin=S("onemin",{});     // "A-B" changes in 60s
 let badges=S("badges",{});
 let cfg=S("cfg",{left:false,goal:15,guide:true,easy:true});cfg.voice??=true;cfg.view??="chart";
 let custom=S("custom",[]);
+let lyrics=S("lyrics",{}); // pasted chord sheets per song key ("perfect", "c:Cold"); only on this device
 let counters=S("counters",{ear:0,quiz:0,songs:0,tuned:0,notes:0,groove:0});
 let log=S("log",{done:{},race:{}});let cleanN=S("clean",{}),jam=S("jam",{}); // clean String Doctor checks per chord; per-song jam speed/best; // per-day history for the weekly card: lessons finished, average change time
 function logRace(secs){const d=today(),r=log.race[d]||{sum:0,n:0};r.sum+=secs;r.n++;log.race[d]=r;save()}
-function save(){W("log",log);W("stats",st);W("done",done);W("known",known);W("bests",bests);W("onemin",onemin);W("badges",badges);W("cfg",cfg);W("custom",custom);W("counters",counters);W("clean",cleanN);W("jam",jam)}
+function save(){W("log",log);W("stats",st);W("done",done);W("known",known);W("bests",bests);W("onemin",onemin);W("badges",badges);W("cfg",cfg);W("custom",custom);W("lyrics",lyrics);W("counters",counters);W("clean",cleanN);W("jam",jam)}
 function addXp(n){if(st.last!==today()){const y=new Date(Date.now()-864e5).toDateString();st.streak=st.last===y?st.streak+1:1;st.last=today()}
   st.xp+=n;save();drawStats();checkBadges()}
 function drawStats(){$("streak").textContent="🔥 "+st.streak;$("xp").textContent="⭐ "+st.xp;const li=lvOf(st.xp);$("lv").textContent="Lv "+(li+1);
@@ -478,7 +492,6 @@ const visHTML=v=>!v?"":`<div class="vis">${v.startsWith("dia:")?dia(v.slice(4)):
 // mic level in the sheet bar, so you can always see that Bruv hears you
 (function M(){const m=$("mic");if(an&&sheetOpen){m.hidden=false;m.querySelector("b").style.width=Math.min(100,level()*700)+"%"}else m.hidden=true;requestAnimationFrame(M)})();
 
-/* ================= trainers: mount(el, step, done) ================= */
 /* ================= trainers: mount(el, step, done) ================= */
 function mountInfo(el,s,done){el.innerHTML=`${visHTML(s.vis)}<div class="body">${s.t}${s.h?`<small>${s.h}</small>`:""}</div>`;
   const r=h("div","row");el.append(r);if(s.hear)btn(r,"🔊 Hear it","ghost",s.hear);btn(r,s.ok||"Got it","big",done)}
@@ -779,6 +792,36 @@ function mountDoctor(el,s,done){
 /* ================= jam (song play-along) ================= */
 // high ticks sit above the range the chord detector listens to, so the beat doesn't confuse it
 function tick2(hi){const a=ctx(),o=a.createOscillator(),g=a.createGain();o.frequency.value=hi?2700:2200;g.gain.setValueAtTime(.07,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.04);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.05)}
+// pasted chord sheets: "chords over lyrics" (the Ultimate Guitar copy-paste) or inline [G]words. Every chord becomes one bar.
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+const CHORD_TOK=/^\(?[A-G][#b]?(m|maj|min|sus|add|dim|aug|M|\d|\+)*(\/[A-G][#b]?)?\)?$/;
+const chordKey=raw=>{const m=raw.replace(/[()]/g,"").match(/^([A-G][#b]?)([^/]*)/);if(!m)return null;const k=m[1]+(/^m(?!aj)/.test(m[2])?"m":"");return CH[k]?k:null};
+const isChordLine=l=>{const t=l.trim().split(/\s+/).filter(x=>!/^(\|+|\(?x\d+\)?|-+|N\.?C\.?)$/i.test(x));return t.length>0&&t.every(x=>CHORD_TOK.test(x))};
+const isHead=l=>{const m=l.trim().match(/^\[([^\]]+)\]:?$/);return m&&!CHORD_TOK.test(m[1])?m[1]:null};
+function parseSheet(txt){const src=txt.replace(/\r/g,"").replace(/\t/g,"    ").split("\n"),lines=[],bars=[],unknown=new Set();
+  const seg=(raw,t)=>{const c=raw?chordKey(raw):null;if(raw&&!c)unknown.add(raw);const g={raw,c,t};if(c){g.b=bars.length;bars.push(c)}return g};
+  for(let i=0;i<src.length;i++){const l=src[i],hd=isHead(l);
+    if(!l.trim()||/^[eBGDAE]\s*\|/.test(l.trim()))continue;
+    if(hd){lines.push({h:hd});continue}
+    if(/\[[A-G][^\]]*\]/.test(l)){const parts=l.split(/\[([^\]]+)\]/),segs=[];if(parts[0].trim())segs.push(seg(null,parts[0]));
+      for(let k=1;k<parts.length;k+=2)segs.push(seg(parts[k],(parts[k+1]||"").padEnd(parts[k].length+1)));lines.push({segs});continue}
+    if(isChordLine(l)){const cols=[...l.matchAll(/\S+/g)].filter(m=>CHORD_TOK.test(m[0])),nx=src[i+1]||"",lyr=nx.trim()&&!isChordLine(nx)&&!isHead(nx)?nx:null;
+      if(lyr==null){lines.push({segs:cols.map(m=>seg(m[0]," "))});continue}
+      i++;const segs=[];if(lyr.slice(0,cols[0].index).trim())segs.push(seg(null,lyr.slice(0,cols[0].index)));
+      cols.forEach((m,k)=>segs.push(seg(m[0],lyr.slice(m.index,k+1<cols.length?cols[k+1].index:undefined).padEnd(m[0].length+1))));lines.push({segs});continue}
+    lines.push({segs:[seg(null,l)]})}
+  return{lines,bars,unknown:[...unknown]}}
+const lyrHtml=sh=>sh.lines.map(L=>L.h?`<div class="lh">${esc(L.h)}</div>`:`<div class="ll">${L.segs.map(g=>`<span class="ls"${g.b!=null?` data-b="${g.b}"`:""}><b>${g.raw?esc(g.c?label(songChords([g.c])[0]):g.raw):""}</b>${esc(g.t)}</span>`).join("")}</div>`).join("");
+function mountLyrics(el,key,s){
+  el.innerHTML=`<p class="mute">Copy the chords and lyrics from a chord site (like Ultimate Guitar) and paste them here. Chords on the line above the words works, and so does [G]inline style. Each chord becomes one bar in Jam, and the words light up as you play.</p>
+   <textarea data-t spellcheck="false" autocapitalize="off" placeholder="[Verse 1]&#10;G          Em&#10;Words go here..."></textarea><div class="mute" data-msg></div><div class="row"></div>`;
+  const q=k=>el.querySelector(k),ta=q("[data-t]"),row=q(".row"),msg=q("[data-msg]");ta.value=lyrics[key]||"";
+  const check=()=>{if(!ta.value.trim()){msg.textContent=lyrics[key]?"Empty. Save to remove the lyrics.":"";return null}const sh=parseSheet(ta.value);
+    msg.innerHTML=sh.bars.length?`Found <b>${sh.bars.length}</b> chord changes: ${[...new Set(sh.bars)].map(label).join(", ")}.`+(sh.unknown.length?` I'll skip <b>${sh.unknown.map(esc).join(", ")}</b>, because I don't know ${sh.unknown.length>1?"those":"that one"} yet.`:""):"I can't find any chords in that. Put the chord names on their own line above the words.";return sh};
+  ta.oninput=check;check();
+  btn(row,"Save & jam","big",()=>{const sh=check();if(sh&&!sh.bars.length)return;if(sh)lyrics[key]=ta.value;else delete lyrics[key];save();drawSongs();if(sh)playSong(s,key);else{say("Lyrics removed.");closeSheet()}});
+  if(lyrics[key])btn(row,"Remove lyrics","ghost",()=>{delete lyrics[key];save();drawSongs();say("Lyrics removed.");closeSheet()});
+}
 // "wait" mode pauses before each new chord until the mic hears it; "go" mode keeps tempo, marks each bar and adjusts the speed for next time
 function mountJam(el,s,done){
   const key=s.key,P=PATTERNS[s.pat],ch=songChords(s.prog),sl=P.slots.length,bars=ch.length*(s.passes||2),J=jam[key]||{};
@@ -787,17 +830,20 @@ function mountJam(el,s,done){
   const cnt=P.beats===6?["1","2","3","4","5","6"]:["1","&","2","&","3","&","4","&"];
   el.innerHTML=`<div class="mute">${s.a?s.a+" · ":""}${s.capo||""} ${PATTERNS[s.pat].name}.</div>
    <div class="seg"><button data-m="wait">⏸ Wait for me</button><button data-m="go">▶ Keep going</button></div><div class="mute" data-mt></div>
-   <div class="tl">${Array.from({length:bars},(_,b)=>`<span class="chip">${label(at(b))}</span>`).join("")}</div>
-   <div class="now"><div><div class="cname" data-c></div><div class="mute" data-n style="text-align:center;font-weight:900;margin-top:8px"></div></div><div data-d></div></div>
+   <div class="tl"${s.sheet?" hidden":""}>${Array.from({length:bars},(_,b)=>`<span class="chip">${label(at(b))}</span>`).join("")}</div>
+   ${s.sheet?`<div class="lyr">${lyrHtml(s.sheet)}</div>`:""}
+   <div class="now${s.sheet?" small":""}"><div><div class="cname" data-c></div><div class="mute" data-n style="text-align:center;font-weight:900;margin-top:8px"></div></div><div data-d></div></div>
    <div class="lane"><div class="slots" style="grid-template-columns:repeat(${sl},1fr)">${[...P.slots].map(x=>`<div class="slot${x==="."?" rest":""}">${x==="D"?"↓":x==="U"?"↑":"·"}</div>`).join("")}</div><div class="counts" style="grid-template-columns:repeat(${sl},1fr)">${cnt.map(x=>`<span>${x}</span>`).join("")}</div></div>
    <div class="mute" style="text-align:center;font-weight:900" data-sp></div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div><div class="best" data-res></div>`;
-  const q=k=>el.querySelector(k),tl=q(".tl"),chips=[...tl.children],slotsEl=[...q(".slots").children],row=q(".row"),ear=q(".ear"),et=q("[data-e]");
+  const q=k=>el.querySelector(k),tl=q(".tl"),chips=[...tl.children],slotsEl=[...q(".slots").children],row=q(".row"),ear=q(".ear"),et=q("[data-e]"),ly=q(".lyr");
+  const lyAt=b=>{if(!ly)return;ly.querySelectorAll(".on,.nx,.cur").forEach(x=>x.classList.remove("on","nx","cur"));ly.querySelector(`[data-b="${b+1}"]`)?.classList.add("nx");
+    const g=ly.querySelector(`[data-b="${b}"]`);if(g){g.classList.add("on");g.parentElement.classList.add("cur");ly.scrollTop=g.parentElement.offsetTop-ly.clientHeight/3}};
   const MT={wait:"The song pauses before each new chord until I hear you play it. Best for learning the changes.",go:"Real tempo. I mark every bar you hit and speed up as you nail it."};
   const drawMode=()=>{el.querySelectorAll("[data-m]").forEach(b=>{b.setAttribute("aria-pressed",b.dataset.m===mode);b.disabled=running});
     q("[data-mt]").textContent=MT[mode];q("[data-sp]").textContent=`Speed: ${bpm()} bpm (${Math.round(speed*100)}% of the record)`};
   el.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{if(running)return;mode=b.dataset.m;J.mode=mode;jam[key]=J;save();drawMode();arm()});
   const show=b=>{const c=at(Math.max(b,0));q("[data-c]").textContent=label(c);q("[data-d]").innerHTML=dia(c);q("[data-n]").textContent=b+1<bars?"Next: "+label(at(b+1)):"Last bar";hits=0;
-    chips.forEach((x,k)=>x.classList.toggle("on",k===b));const x=chips[Math.max(b,0)];tl.scrollLeft=x.offsetLeft-tl.clientWidth/2+x.offsetWidth/2};
+    chips.forEach((x,k)=>x.classList.toggle("on",k===b));lyAt(Math.max(b,0));const x=chips[Math.max(b,0)];tl.scrollLeft=x.offsetLeft-tl.clientWidth/2+x.offsetWidth/2};
   function tick(){if(waiting)return;const x=P.slots[slot],beat=P.beats===6?(slot===0||slot===3):slot%2===0;slotsEl.forEach((d,k)=>d.classList.toggle("on",k===slot));
     if(bar<0){if(beat)click(slot===0)}else if(micOn){if(beat)tick2(slot===0)}else{if(beat)click(slot===0);if(x!=="."&&cfg.guide)strum(at(bar),x==="D")}
     if(++slot<sl)return;slot=0;if(bar>=0&&micOn)chips[bar].classList.add(heard[bar]?"ok":"miss");
@@ -1092,14 +1138,15 @@ function drawHome(){const W0=buildWorkout(),m=Math.floor(sessionMin()),nl=nextLe
   $("journey").innerHTML=`<b>${n}/${LESSONS.length}</b> lessons · <b>${kn.length}</b> chords · <b>${st.streak}</b>-day streak<br>${nl?`You're in <b>${UNITS[nl.unit].t}</b>.`:"Course complete. Keep adding songs!"}`;
   const hr=new Date().getHours();
   $("hsay").textContent=m>=cfg.goal?"Goal done today. Anything extra is a bonus.":!n?"Yo Tony. Zero to playing songs, and I'll teach you all of it. Hit Start.":st.last===today()?"Back for more? Respect.":(hr<12?"Morning. Quick workout before the day takes over.":hr<18?"Afternoon session. Phone on the stand, let's go.":"Evening jam. Fingers ready?")}
-function playSong(s,key){runTool(s.t,el=>mountJam(el,{...s,key}))}
+function playSong(s,key){const sh=lyrics[key]&&parseSheet(lyrics[key]);runTool(s.t,el=>mountJam(el,sh&&sh.bars.length?{...s,key,prog:sh.bars,passes:1,sheet:sh}:{...s,key}))}
 function drawSongs(){const L=$("songlist");L.innerHTML="";const all=[...Object.entries(SONGS),...custom.map((s,i)=>["c:"+s.t,{...s,ci:i}])];
   all.forEach(([key,s])=>{const need=[...new Set(songChords(s.prog))].filter(c=>!known[c]),J=jam[key]||{},c=h("div","card songc");
     c.innerHTML=`<div class="row"><h2>${s.t}</h2><span class="mute">${s.a||"Your song"}</span></div><div class="meta">${[...new Set(songChords(s.prog))].map(x=>`<span class="chip${known[x]?"":" miss"}">${label(x)}</span>`).join("")}</div>
-      <div class="mute">${PATTERNS[s.pat].name} · ${s.bpm} bpm${J.best!=null?` · best ${J.best}% at ${Math.round((J.speed||.7)*100)}% speed`:""}</div>`;
+      <div class="mute">${lyrics[key]?"📝 Lyrics on · ":""}${PATTERNS[s.pat].name} · ${s.bpm} bpm${J.best!=null?` · best ${J.best}% at ${Math.round((J.speed||.7)*100)}% speed`:""}</div>`;
     const r=h("div","row");c.append(r);if(need.length)r.append(h("span","mute",`🔒 Learn ${need.map(label).join(", ")} first`));
     btn(r,need.length?"Try anyway":"▶ Jam","big"+(need.length?" gold":""),()=>playSong(s,key));
-    if(s.ci!==undefined)btn(r,"Delete","ghost",()=>{custom.splice(s.ci,1);save();drawSongs()});L.append(c)})}
+    btn(r,lyrics[key]?"📝 Lyrics":"📝 Add lyrics","ghost",()=>runTool("Lyrics: "+s.t,el=>mountLyrics(el,key,s)));
+    if(s.ci!==undefined)btn(r,"Delete","ghost",()=>{custom.splice(s.ci,1);delete lyrics[key];save();drawSongs()});L.append(c)})}
 
 /* ================= time tracking ================= */
 const sessionMin=()=>st.mins[today()]||0;
@@ -1167,9 +1214,11 @@ function drawPractice(){const T=$("tools");T.innerHTML="";const kn=Object.keys(k
 $("cs-pat").innerHTML=Object.entries(PATTERNS).map(([k,p])=>`<option value="${k}">${p.name}</option>`).join("");$("cs-pat").value="folk";
 $("cs-add").onclick=()=>{const name=$("cs-name").value.trim()||"My song",raw=$("cs-ch").value.trim().split(/[\s,|]+/).filter(Boolean);
   const prog=raw.map(x=>Object.keys(CH).find(c=>c!=="open"&&c.toLowerCase()===x.toLowerCase())),bad=raw.filter((x,i)=>!prog[i]);
-  if(!raw.length){$("cs-msg").textContent="Type at least one chord.";return}
+  const sheet=$("cs-ly").value.trim(),sh=sheet?parseSheet(sheet):null;
+  if(!raw.length&&!sh?.bars.length){$("cs-msg").textContent=sheet?"I can't find any chords in that sheet. Put the chord names on their own line above the words.":"Type at least one chord, or paste a chord sheet.";return}
   if(bad.length){$("cs-msg").innerHTML=`I don't have <b>${bad.join(", ")}</b> yet. Chords I know: ${Object.keys(CH).filter(c=>c!=="open").join(", ")}. Swap it for the closest one, or ask Charvis to add it.`;return}
-  custom.push({t:name,prog,pat:$("cs-pat").value,bpm:Math.max(40,Math.min(160,+$("cs-bpm").value||70))});save();$("cs-msg").textContent="Added. Scroll up to play it.";$("cs-name").value="";$("cs-ch").value="";drawSongs()};
+  custom.push({t:name,prog:raw.length?prog:[...sh.bars],pat:$("cs-pat").value,bpm:Math.max(40,Math.min(160,+$("cs-bpm").value||70))});if(sh?.bars.length)lyrics["c:"+name]=sheet;else delete lyrics["c:"+name];
+  save();$("cs-msg").textContent="Added. Scroll up to play it.";$("cs-name").value="";$("cs-ch").value="";$("cs-ly").value="";drawSongs()};
 function drawMe(){
   $("mestats").innerHTML=[["Total practice",Math.round(st.totalSec/60)+" min"],["Day streak",st.streak],["Stars",st.xp],["Lessons",Object.keys(done).length+"/"+LESSONS.length],["Chords known",Object.keys(known).length-1],["Songs finished",counters.songs],
     ...Object.entries(bests).map(([k,v])=>[k.split("→").map(label).join(" → "),v.toFixed(2)+"s"]),...Object.entries(onemin).map(([k,v])=>[k.split("-").map(label).join(" ⇄ ")+" (1 min)",v])].map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join("");
