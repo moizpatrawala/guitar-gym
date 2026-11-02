@@ -922,16 +922,17 @@ function tick2(hi){const a=ctx(),o=a.createOscillator(),g=a.createGain();o.frequ
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 const CHORD_TOK=/^\(?[A-G][#b]?(m|maj|min|sus|add|dim|aug|M|\d|\+)*(\/[A-G][#b]?)?\)?$/;
 const chordKey=raw=>{const m=raw.replace(/[()]/g,"").match(/^([A-G][#b]?)([^/]*)/);if(!m)return null;const k=m[1]+(/^m(?!aj)/.test(m[2])?"m":"");return CH[k]?k:null};
-const isChordLine=l=>{const t=l.trim().split(/\s+/).filter(x=>!/^(\|+|\(?x\d+\)?|-+|N\.?C\.?)$/i.test(x));return t.length>0&&t.every(x=>CHORD_TOK.test(x))};
+const isBarTok=x=>CHORD_TOK.test(x)||x==="%";
+const isChordLine=l=>{const t=l.replace(/\|/g," ").trim().split(/\s+/).filter(x=>x&&!/^(\(?x\d+\)?|-+|N\.?C\.?)$/i.test(x));return t.length>0&&t.every(isBarTok)&&t.some(x=>x!=="%")||t.length>0&&t.every(x=>x==="%")};
 const isHead=l=>{const m=l.trim().match(/^\[([^\]]+)\]:?$/);return m&&!CHORD_TOK.test(m[1])?m[1]:null};
-function parseSheet(txt){const src=txt.replace(/\r/g,"").replace(/\t/g,"    ").split("\n"),lines=[],bars=[],unknown=new Set();
-  const seg=(raw,t)=>{const c=raw?chordKey(raw):null;if(raw&&!c)unknown.add(raw);const g={raw,c,t};if(c){g.b=bars.length;bars.push(c)}return g};
-  for(let i=0;i<src.length;i++){const l=src[i],hd=isHead(l);
-    if(!l.trim()||/^[eBGDAE]\s*\|/.test(l.trim()))continue;
+function parseSheet(txt){const src=txt.replace(/\r/g,"").replace(/\t/g,"    ").split("\n"),lines=[],bars=[],unknown=new Set();let lastRaw=null;
+  const seg=(raw,t)=>{if(raw==="%")raw=lastRaw;if(raw)lastRaw=raw;const c=raw?chordKey(raw):null;if(raw&&!c)unknown.add(raw);const g={raw,c,t};if(c){g.b=bars.length;bars.push(c)}return g};
+  for(let i=0;i<src.length;i++){if(/^[eBGDAE]\s*\|/.test(src[i].trim()))continue;const l=src[i].replace(/\|/g," "),hd=isHead(l);
+    if(!l.trim())continue;
     if(hd){lines.push({h:hd});continue}
     if(/\[[A-G][^\]]*\]/.test(l)){const parts=l.split(/\[([^\]]+)\]/),segs=[];if(parts[0].trim())segs.push(seg(null,parts[0]));
       for(let k=1;k<parts.length;k+=2)segs.push(seg(parts[k],(parts[k+1]||"").padEnd(parts[k].length+1)));lines.push({segs});continue}
-    if(isChordLine(l)){const cols=[...l.matchAll(/\S+/g)].filter(m=>CHORD_TOK.test(m[0])),nx=src[i+1]||"",lyr=nx.trim()&&!isChordLine(nx)&&!isHead(nx)?nx:null;
+    if(isChordLine(l)){const cols=[...l.matchAll(/\S+/g)].filter(m=>isBarTok(m[0])),nx=src[i+1]||"",lyr=!src[i].includes("|")&&nx.trim()&&!isChordLine(nx)&&!isHead(nx)&&!/^[eBGDAE]\s*\|/.test(nx.trim())?nx:null;
       if(lyr==null){lines.push({segs:cols.map(m=>seg(m[0]," "))});continue}
       i++;const segs=[];if(lyr.slice(0,cols[0].index).trim())segs.push(seg(null,lyr.slice(0,cols[0].index)));
       cols.forEach((m,k)=>segs.push(seg(m[0],lyr.slice(m.index,k+1<cols.length?cols[k+1].index:undefined).padEnd(m[0].length+1))));lines.push({segs});continue}
