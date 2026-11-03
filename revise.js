@@ -14,7 +14,7 @@ function revItems(){const out=[],seen=new Set(),kn=knownChords();
   const add=(id,cat,name,step,mins,unit)=>{if(seen.has(id))return;seen.add(id);out.push({id,cat,name,step,mins,unit,st:revState[id]})};
   const learnedIn=c=>LESSONS.find(L=>L.steps?.some(s=>s.learn===c));
   const pair2=()=>{const k=kn.filter(c=>!CH[c].nick).slice(-2);return k.length===2?k:kn.length?[kn.at(-1)]:["open"]};
-  kn.forEach(c=>add("chord:"+c,"Chords",label(c),{type:"chordcheck",c},1,learnedIn(c)?.unit));
+  kn.forEach(c=>add("chord:"+c,"Chords",label(c),{type:"reps",c,n:5},1,learnedIn(c)?.unit));
   LESSONS.filter(L=>done[L.id]).forEach(L=>(L.steps||[]).forEach((s,i)=>{
     const pairs=s.type==="onemin"?[s.pair]:s.type==="race"?(s.pairs||[]):[];
     pairs.forEach(p=>{if(p.every(c=>known[c])&&!sameChord(p[0],p[1]))add("change:"+[...p].sort().join("-"),"Changes",p.map(label).join(" ⇄ "),{type:"onemin",pair:p},1.2,L.unit)});

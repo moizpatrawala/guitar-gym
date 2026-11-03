@@ -326,7 +326,7 @@ textarea{font:13px/1.5 ui-monospace,"SF Mono",Menlo,monospace;color:var(--text);
     <div class="mute" id="goalTxt"></div>
   </div>
   <button class="ghost" id="cont">Just the next lesson</button>
-  <div class="card"><h2>Your chords</h2><p class="mute">The ring fills as a chord gets clean and fast. Tap one to check it with the String Doctor.</p><div class="rings" id="rings"></div></div>
+  <div class="card"><h2>Your chords</h2><p class="mute">The ring fills as a chord gets clean and fast. Tap one for 5 quick muscle-memory reps.</p><div class="rings" id="rings"></div></div>
   <div class="card">
     <h2>This week</h2>
     <div class="week" id="week"></div>
@@ -354,7 +354,7 @@ textarea{font:13px/1.5 ui-monospace,"SF Mono",Menlo,monospace;color:var(--text);
 <section id="tab-practice" class="stack" hidden>
   <div class="bruv"><img class="mascot" alt="Bruv" src="bruv/idle_0.png"><div class="bubble" id="psay">The gym floor. Tools unlock as you learn what they need.</div></div>
   <div class="tools" id="tools"></div>
-  <div class="card"><h2>Chord library</h2><p class="mute">Tap a chord you know to run the String Doctor on it. Locked ones just play the sound.</p><div class="lib" id="lib"></div></div>
+  <div class="card"><h2>Chord library</h2><p class="mute">Tap any chord to hear it. Locked ones are coming up in Learn.</p><div class="lib" id="lib"></div></div>
 </section>
 
 <section id="tab-songs" class="stack" hidden>
@@ -449,9 +449,13 @@ const CH={
   Fmaj7:{f:[-1,-1,3,2,1,0],n:[0,0,3,2,1,0],pc:[5,9,0],nick:"Easy F"},
   Fmini:{f:[-1,-1,3,2,1,1],n:[0,0,3,2,1,1],pc:[5,9,0],nick:"Mini F",barre:"Your index finger lies flat across the 2 thinnest strings at fret 1. That's a mini barre."},
   F:{f:[1,3,3,2,1,1],n:[1,3,4,2,1,1],pc:[5,9,0],barre:"Your index finger lies flat across ALL six strings at fret 1. Roll it slightly onto its bony side, and keep your thumb low behind the neck."},
+  Bmini:{f:[-1,-1,4,4,3,2],n:[0,0,3,4,2,1],pc:[11,2,6],nick:"Small Bm",barre:"Your index finger lies flat across the 2 thinnest strings at fret 2. Only strum the 4 thin strings."},
+  Abarre:{f:[5,7,7,6,5,5],n:[1,3,4,2,1,1],pc:[9,1,4],nick:"A barre",barre:"Your index finger lies flat across ALL six strings at fret 5. Up here the strings are lower, so it takes less pressure than F."},
+  Gbarre:{f:[3,5,5,4,3,3],n:[1,3,4,2,1,1],pc:[7,11,2],nick:"G barre",barre:"Your index finger lies flat across ALL six strings at fret 3. Same shape as the A barre, two frets lower."},
   Bm:{f:[-1,2,4,4,3,2],n:[0,1,3,4,2,1],pc:[11,2,6],barre:"Your index finger lies across the 5 thinnest strings at fret 2. Skip the thick low E."},
 };
 const label=c=>CH[c]?.nick||c;
+const SHAPES={Barre5:{f:[5,5,5,5,5,5],n:[1,1,1,1,1,1]}};
 const OPEN=[82.41,110,146.83,196,246.94,329.63],OPEN_MIDI=[40,45,50,55,59,64];
 const STR=["E","A","D","G","B","e"];
 const SN=["6th (thickest)","5th","4th","3rd","2nd","1st (thinnest)"],FN=["","index","middle","ring","pinky"];
@@ -558,24 +562,25 @@ function hush(){try{speechSynthesis.cancel()}catch{}talking=0}
 const STRN=["low E","A","D","G","B","high e"];
 const MK={ok:["✓","var(--good)"],bad:["✗","var(--hot)"],open:["✗","var(--hot)"],ring:["!","var(--hot)"],"?":["?","var(--gold)"]};
 // chord picture: upright chart or sideways neck (cfg.view). marks = per-string doctor results drawn on the strings
-function dia(name,hi=-1,marks){const c=CH[name];if(!c)return "";
+function dia(name,hi=-1,marks){const c=CH[name]||SHAPES[name];if(!c)return "";
+  const up=c.f.filter(f=>f>0),base=up.length&&Math.max(...up)>4?Math.min(...up):1,rel=f=>f-base+1;
   const mk=i=>marks&&MK[marks[i]],col=i=>mk(i)?mk(i)[1]:i===hi?"var(--blue)":"var(--mute)",wd=i=>mk(i)||i===hi?3.5:1.5;
   const badge=(x,y,i)=>mk(i)?`<circle cx="${x}" cy="${y}" r="7.5" fill="${mk(i)[1]}" stroke="var(--ink)" stroke-width="1.5"/><text x="${x}" y="${y+4}" fill="${marks[i]==="?"?"var(--ink)":"#fff"}" font-size="11" font-weight="900" text-anchor="middle">${mk(i)[0]}</text>`:"";
   const dot=(x,y,i)=>`<circle cx="${x}" cy="${y}" r="8" fill="var(--blue)" stroke="var(--ink)" stroke-width="1.5"/><text x="${x}" y="${y+4}" fill="#fff" font-size="11" font-weight="900" text-anchor="middle">${c.n[i]}</text>`;
   let s;
   if(cfg.view==="neck"){const Y=i=>16+i*18,X=f=>44+f*44-22,W=marks?240:222;
-    s=`<svg width="${W}" height="124" viewBox="0 0 ${W} 124" role="img" aria-label="${label(name)} chord, neck view"><rect x="40" y="9" width="5" height="104" fill="var(--ink)"/>`;
+    s=`<svg width="${W}" height="124" viewBox="0 0 ${W} 124" role="img" aria-label="${label(name)} chord, neck view"><rect x="40" y="9" width="${base>1?2:5}" height="104" fill="var(--ink)"/>${base>1?`<text x="66" y="8" font-size="10" font-weight="800" fill="var(--mute)" text-anchor="middle">fret ${base}</text>`:""}`;
     for(let j=1;j<=4;j++)s+=`<line x1="${44+j*44}" y1="10" x2="${44+j*44}" y2="112" stroke="var(--tan)" stroke-width="2"/>`;
     for(let i=0;i<6;i++)s+=`<line x1="44" y1="${Y(i)}" x2="220" y2="${Y(i)}" stroke="${col(i)}" stroke-width="${wd(i)+(5-i)*.25}"/><text x="4" y="${Y(i)+4}" font-size="11" font-weight="900" fill="var(--mute)">${STR[i]}</text>`;
     c.f.forEach((f,i)=>{if(f<0)s+=`<text x="30" y="${Y(i)+4}" fill="var(--hot)" font-size="12" font-weight="900" text-anchor="middle">✕</text>`;
-      else if(f===0)s+=`<circle cx="30" cy="${Y(i)}" r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;else s+=dot(X(f),Y(i),i);s+=badge(231,Y(i),i)});
+      else if(f===0)s+=`<circle cx="30" cy="${Y(i)}" r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;else s+=dot(X(rel(f)),Y(i),i);s+=badge(231,Y(i),i)});
   }else{const H=marks?150:130;
-    s=`<svg width="110" height="${H}" viewBox="0 0 110 ${H}" role="img" aria-label="${label(name)} chord diagram"><rect x="15" y="20" width="80" height="4" fill="var(--ink)"/>`;
+    s=`<svg width="${base>1?126:110}" height="${H}" viewBox="${base>1?-16:0} 0 ${base>1?126:110} ${H}" role="img" aria-label="${label(name)} chord diagram"><rect x="15" y="${base>1?21:20}" width="80" height="${base>1?2:4}" fill="var(--ink)"/>${base>1?`<text x="3" y="38" font-size="10" font-weight="800" fill="var(--mute)" text-anchor="end">${base}fr</text>`:""}`;
     for(let i=0;i<6;i++)s+=`<line x1="${15+i*16}" y1="22" x2="${15+i*16}" y2="118" stroke="${col(i)}" stroke-width="${wd(i)}"/>`;
     for(let j=1;j<=4;j++)s+=`<line x1="15" y1="${22+j*24}" x2="95" y2="${22+j*24}" stroke="var(--tan)" stroke-width="2"/>`;
     c.f.forEach((f,i)=>{const x=15+i*16;
       if(f<0)s+=`<text x="${x}" y="14" fill="var(--hot)" font-size="12" font-weight="900" text-anchor="middle">✕</text>`;
-      else if(f===0)s+=`<circle cx="${x}" cy="10" r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;else s+=dot(x,22+f*24-12,i);s+=badge(x,138,i)})}
+      else if(f===0)s+=`<circle cx="${x}" cy="10" r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;else s+=dot(x,22+rel(f)*24-12,i);s+=badge(x,138,i)})}
   return `<span class="${cfg.left?"flip":""}">${s}</svg></span>`}
 const VIS={
   parts:`<svg viewBox="0 0 340 170" width="100%" style="max-width:420px" role="img" aria-label="Guitar parts">
@@ -854,67 +859,6 @@ function mountMetronome(el){
   cleanup.push(()=>clearInterval(t));
 }
 
-/* ================= string doctor ================= */
-// From one strum, look for each string's own note in the spectrum. If another string's overtones land on the same note it can't be told apart,
-// so those strings (and any that look dead) get confirmed with a single pluck.
-const cents=(a,b)=>Math.abs(1200*Math.log2(a/b));
-function doctorPlan(c){const ch=CH[c],played=ch.f.map((fr,i)=>fr<0?0:hz(i,fr));
-  return ch.f.map((fr,i)=>{const others=played.filter((x,j)=>x&&j!==i),
-      free=f=>f<1400&&!others.some(o=>[1,2,3,4,5,6].some(k=>cents(o*k,f)<45)),
-      probe=f=>(f<130?[2,3,1]:[1,2,3]).map(k=>f*k).find(free)||0;
-    return fr<0?{i,mute:true,probe:probe(OPEN[i])}:{i,probe:probe(played[i]),openProbe:fr>0?probe(OPEN[i]):0}})}
-// how far (dB) the strongest bin near f stands above the surrounding spectrum
-function peakDb(acc,f){const bw=ac.sampleRate/an.fftSize,k0=f/bw,w=Math.max(1.5,k0*(2**(30/1200)-1)),ex=Math.max(2.5,k0*(2**(70/1200)-1));let pk=0;const fl=[];
-  for(let k=Math.floor(k0*2**(-3/12));k<=Math.ceil(k0*2**(3/12));k++){const v=acc[k]||0;if(Math.abs(k-k0)<=w)pk=Math.max(pk,v);else if(Math.abs(k-k0)>ex)fl.push(v)}
-  fl.sort((a,b)=>a-b);return 10*Math.log10((pk+1e-15)/((fl[fl.length>>1]||0)+1e-15))}
-// the fix for a bad string, naming the finger that's most likely to blame (the one on the nearest thicker fretted string leans over it)
-function advice(c,i,stt){const ch=CH[c],fr=ch.f[i],fg=FN[ch.n[i]],nb=[...Array(i).keys()].reverse().find(j=>ch.f[j]>0),
-    cul=nb!=null?`your ${FN[ch.n[nb]]} finger on the ${STRN[nb]} string`:"",first=ch.f.findIndex(f=>f>=0);
-  if(stt==="ring")return `The ${STRN[i]} string is ringing, but it's an ✕. Start your strum from the ${STRN[first]} string.`;
-  if(stt==="open")return `The ${STRN[i]} string is ringing open. Your ${fg} finger isn't pressing it down: tip down, right behind fret ${fr}.`;
-  if(fr>0)return `The ${STRN[i]} string is dead or buzzing. Press harder with your ${fg} finger, on the very tip, right behind fret ${fr}.`+(cul?` Or ${cul} is leaning on it.`:"");
-  return `The ${STRN[i]} string should ring open but it's muted.`+(cul?` ${cul[0].toUpperCase()+cul.slice(1)} is probably touching it. Arch it and come down on the tip.`:" Something's touching it.")}
-function mountDoctor(el,s,done){
-  const c=s.c,plan=doctorPlan(c),confirmed=new Set(),again=new Set();let pT=0,marks,off=null,fin=false,tries=0,phase,queue=[],cur=-1,t0=0,prev=0,acc=null,frames=0,pk;
-  el.innerHTML=`<div class="now"><div class="cname">${label(c)}</div><div data-d class="bigdia"></div></div><div class="body" data-t></div><div class="docs" data-l></div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div>`;
-  const q=k=>el.querySelector(k),D=q("[data-d]"),T=q("[data-t]"),Lst=q("[data-l]"),ear=q(".ear"),et=q("[data-e]"),row=q(".row");
-  const draw=()=>D.innerHTML=dia(c,cur,marks);
-  function finish(msg){if(fin)return;fin=true;lastResult={type:"chordcheck",c,tries};off&&off();off=null;ear.hidden=true;row.innerHTML="";ding();cleanN[c]=(cleanN[c]||0)+1;save();checkBadges();
-    say(msg||rnd(["Every string ringing. Clean.","Clean as anything. Every string.","That's the one. All strings ringing."]));
-    if(done){btn(row,"Next","big",done);autoNext(row,done)}else btn(row,"Check again","big",start)}
-  function report(){cur=-1;draw();const probs=marks.map((m,i)=>[m,i]).filter(([m])=>m&&m!=="ok"),oks=marks.map((m,i)=>m==="ok"?STRN[i]:null).filter(Boolean);
-    Lst.innerHTML=(oks.length?`<div class="doc ok"><b class="s">✓</b><span>${oks.join(", ")}: ringing clean</span></div>`:"")+probs.map(([m,i])=>`<div class="doc"><b class="s">${MK[m][0]}</b><span>${advice(c,i,m)}</span></div>`).join("");
-    if(!probs.length){finish();return}
-    tries++;if(tries>=3&&done&&an){et.textContent="Close enough for today.";setTimeout(()=>finish("Close enough for today. We'll polish it in the next workout."),2500);return}
-    say(advice(c,probs[0][1],probs[0][0]));T.innerHTML=`Fix it, then strum <b>${label(c)}</b> again.`;phase="strum";et.textContent="Strum again when you're ready…"}
-  function evalStrum(){
-    plan.forEach(p=>{const i=p.i;if(p.mute){marks[i]=p.probe&&peakDb(acc,p.probe)>14?"ring":null;return}
-      const d=p.probe?peakDb(acc,p.probe):null;
-      marks[i]=d===null?"?":d>10?"ok":d<5?(p.openProbe&&peakDb(acc,p.openProbe)>12?"open":"bad"):"?";
-      if(marks[i]==="?"&&confirmed.has(i))marks[i]="ok"});
-    draw();again.clear();queue=marks.map((m,i)=>m==="?"||m==="bad"?i:-1).filter(i=>i>=0);queue.length?pluckNext():report()}
-  function pluckNext(){cur=queue.shift();phase="pluck";pT=performance.now();t0=0;draw();T.innerHTML=`Keep holding it, and pluck just the <b>${STRN[cur]}</b> string on its own.`;et.textContent=`Pluck the ${STRN[cur]} string…`;speak(`Now pluck just the ${STRN[cur]} string.`)}
-  function evalPluck(){const m=pk.hit>=3?"ok":pk.open>=3?"open":"bad";
-    // one silent or muddy pluck could be a stray sound, so a string only counts as dead after two
-    if(m==="bad"&&!again.has(cur)){again.add(cur);pT=performance.now();T.innerHTML=`Didn't catch that. Pluck the <b>${STRN[cur]}</b> string once more.`;et.textContent=`Once more: the ${STRN[cur]} string…`;return}marks[cur]=m;if(m==="ok")confirmed.add(cur);queue.length?pluckNext():report()}
-  function loop(){if(fin)return;const l=level(),t=performance.now();
-    if(!t0){if(l>.03&&l>prev*2.2&&(phase==="strum"||t-pT>400)){t0=t;acc=new Float32Array(fbuf.length);frames=0;pk={hit:0,open:0}}prev=prev*.6+l*.4;return}
-    const dt=t-t0;
-    if(phase==="strum"){if(dt<120)return;
-      if(dt<800&&l>.005){an.getFloatFrequencyData(fbuf);for(let k=0;k<fbuf.length;k++)acc[k]+=10**(fbuf[k]/10);frames++;return}
-      t0=0;prev=l;if(frames>=6)evalStrum();return}
-    if(dt<60)return;
-    if(dt<750){const p=pitch();if(p){const m=midiOf(p.f),near=x=>{const d=m-x;return Math.abs(d)<.5||(Math.abs(((d%12)+18)%12-6)<.5&&Math.abs(d)<12.5)};
-      if(near(OPEN_MIDI[cur]+CH[c].f[cur]))pk.hit++;else if(CH[c].f[cur]>0&&near(OPEN_MIDI[cur]))pk.open++}return}
-    t0=0;prev=l;evalPluck()}
-  function start(){off&&off();off=null;fin=false;tries=0;confirmed.clear();cur=-1;phase="strum";t0=0;marks=plan.map(()=>null);draw();Lst.innerHTML="";row.innerHTML="";
-    T.innerHTML=s.t||`Make <b>${label(c)}</b> and strum it once. Let it ring. I'll check every string.`;
-    btn(row,"🔊 Hear "+label(c),"ghost",()=>strum(c));const m=btn(row,"Sounded right","big",()=>finish("Trusting you on that one."));
-    if(an){ear.hidden=false;ear.classList.add("live");et.textContent="Strum it…";m.className="ghost";off=listen(loop)}}
-  start();(async()=>{if(!an&&await ears()&&el.isConnected&&!fin)start()})();
-  cleanup.push(()=>off&&off());
-}
-
 /* ================= jam (song play-along) ================= */
 // high ticks sit above the range the chord detector listens to, so the beat doesn't confuse it
 function tick2(hi){const a=ctx(),o=a.createOscillator(),g=a.createGain();o.frequency.value=hi?2700:2200;g.gain.setValueAtTime(.07,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.04);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.05)}
@@ -1014,7 +958,6 @@ function learnChord(c,intro){const ch=CH[c],steps=[];
   const m=ch.f.map((f,i)=>f<0?SN[i]:null).filter(Boolean);
   if(m.length)steps.push({type:"info",vis:"dia:"+c,t:`Don't play the <b>${m.join(" and ")}</b> string${m.length>1?"s":""}.`,h:"Start your strum from the first string without a ✕. Aim, don't slap."});
   steps.push({type:"notes",dia:c,t:"Now pluck each string on its own, thickest to thinnest.",h:"Buzz = press harder or closer to the fret. Dead thud = another finger is leaning on it: arch more.",notes:ch.f.map((f,i)=>[i,f]).filter(x=>x[1]>=0)});
-  steps.push({type:"chordcheck",c});
   steps.push({type:"reps",c,n:5,learn:c});
   return steps}
 
@@ -1137,12 +1080,27 @@ const UNITS=[
     {type:"info",t:"<b>Barre chords</b> use one finger flat across several strings. They're the wall every beginner hits, and getting over it is what separates 'learning' from 'playing'.",h:"It WILL buzz for a week or two. That's expected. Short tries, every day."},
     ...learnChord("Fmini","Same as Easy F, but your index finger also flattens over the thinnest string."),
     {type:"onemin",pair:["C","Fmini"]}]},
-  {id:"letitbe",t:"Let It Be",d:"The Beatles · C G Am F",song:"letitbe"},
+  {id:"barrecamp",t:"Barre bootcamp",d:"One finger, six strings",steps:[
+    {type:"info",vis:"dia:Barre5",t:"Before any barre chord, just the barre. Lay your <b>index finger flat across all six strings at fret 5</b>. Up there the strings sit lower than at fret 1, so it's the easiest place to start.",h:"Fret 5 is the fret with the dot on the side of the neck, past the 3rd-fret dot."},
+    {type:"info",vis:"dia:Barre5",t:"<b>Where most barres go wrong:</b> roll your index slightly onto its <b>bony edge</b> (the side facing the headstock), sit it <b>right behind the fret wire</b>, and put your thumb in the <b>middle of the back of the neck</b>.",h:"The soft middle of your finger and its creases are what mute strings. The bony edge is firmer."},
+    {type:"info",vis:"dia:Barre5",t:"<b>Pull, don't squeeze.</b> Tuck your elbow in and let your arm's weight pull the neck gently back towards you. Your thumb barely presses.",h:"If your thumb aches within 20 seconds, you're squeezing. Ease off."},
+    {type:"notes",dia:"Barre5",t:"String check: hold the barre and pluck each string, thickest to thinnest.",h:"A dead string is usually under a knuckle crease. Slide your finger a few millimetres up or down the strings, not along the neck.",notes:[[0,5],[1,5],[2,5],[3,5],[4,5],[5,5]]},
+    {type:"info",vis:"dia:Barre5",t:"<b>Squeeze and release, 10 times.</b> Press until every string rings, then slowly ease off until it just starts to buzz. Just before the buzz is all the pressure you ever need.",h:"This teaches your hand to use less force. It's the drill that makes F possible. 5 minutes a day max, and stop if your hand or wrist (not fingertips) aches.",ok:"Done 10"}]},
+  {id:"bmini",t:"Small Bm",d:"Barre on 2 strings",steps:[...learnChord("Bmini","Small Bm: a mini barre at fret 2, plus two fingers. Only the 4 thin strings."),{type:"race",pairs:[["Bmini","G"],["Em","Bmini"]],rounds:3}]},
   {id:"bm",t:"Bm",d:"Barre on 5 strings",steps:[...learnChord("Bm","The Bm barre. Strum from the A string down."),{type:"race",pairs:[["G","Bm"],["Bm","Em"]],rounds:3}]},
+  {id:"abarre",t:"A barre at fret 5",d:"Your first full barre chord",steps:[
+    {type:"info",vis:"dia:Abarre",t:"Your first full barre chord is <b>not F</b>. It's the same shape up at <b>fret 5</b>, where it's much easier. Fingers 2, 3 and 4 make an <b>E shape</b> moved up; your index is the barre.",h:"Same shape anywhere on the neck. At fret 5 it's an A chord, at fret 3 it's G, at fret 1 it's F."},
+    ...learnChord("Abarre","Barre at fret 5 with your index, then your E shape just above it."),
+    {type:"race",pairs:[["Abarre","D"],["E","Abarre"]],rounds:3}]},
+  {id:"gbarre",t:"Slide down: G barre",d:"Fret 3. Closer to F",steps:[
+    {type:"info",vis:"dia:Gbarre",t:"Same shape, <b>two frets lower</b>. Each fret down needs a bit more pressure, so you're training your hand one step at a time towards F.",h:"Play the A barre at fret 5, then slide the whole shape down to fret 3 without lifting. That's a G."},
+    ...learnChord("Gbarre","The A barre shape moved down to fret 3."),
+    {type:"race",pairs:[["Gbarre","C"],["Abarre","Gbarre"]],rounds:3}]},
   {id:"ffull",t:"Full F",d:"The boss level",steps:[
     {type:"info",t:"<b>Full F barre.</b> If it's ugly at first: completely normal. Check string by string, adjust, and come back tomorrow.",h:"Tips: index finger right behind the fret, rolled slightly onto its side; elbow tucked in; thumb low. Don't death-grip, pull back with your arm."},
     ...learnChord("F","Index finger flat across everything. The other fingers make an E shape."),
     {type:"onemin",pair:["C","F"]}]},
+  {id:"letitbe",t:"Let It Be",d:"The Beatles · C G Am F",song:"letitbe"},
  ]},
  {t:"9 · Fingerpicking",ls:[
   {id:"pickbasics",t:"Picking hand basics",d:"Thumb + three fingers",steps:[
@@ -1187,7 +1145,7 @@ const songChords=prog=>prog.map(c=>{if(!cfg.easy||known[c]||!EASY[c])return c;co
 
 
 /* ================= runners ================= */
-const MOUNT={reps:mountReps,info:mountInfo,quiz:mountQuiz,tuner:mountTuner,notes:mountNotes,chordcheck:mountDoctor,strum:mountStrum,race:mountRace,onemin:mountOneMin,ear:mountEar,
+const MOUNT={reps:mountReps,info:mountInfo,quiz:mountQuiz,tuner:mountTuner,notes:mountNotes,strum:mountStrum,race:mountRace,onemin:mountOneMin,ear:mountEar,
   jam:(el,s,done)=>mountJam(el,{...SONGS[s.song],key:s.song,passes:s.passes},done)};
 const lessonSteps=L=>L.steps.map(s=>s.song?{...s,chords:songChords(s.chords)}:s);
 // what Bruv says out loud when a step opens, so you can follow without looking
@@ -1197,7 +1155,6 @@ function narrate(s){const L=label;let t="";
     case "quiz":t=s.q;break;
     case "tuner":t="Tuning first. Pluck one string at a time and I'll tell you which way to turn the peg.";break;
     case "notes":t=(s.t||"")+" Play the highlighted notes. I'm listening.";break;
-    case "chordcheck":t=`Make the ${L(s.c)} shape and strum it once. I'll check every string.`;break;
     case "reps":t=`Lift your hand off, put the ${L(s.c)} shape back, strum. ${s.n||5} times.`;break;
     case "strum":t=(s.t||"")+" Strum once when you're ready and I'll count you in.";break;
     case "race":t="Change race. Strum the first chord and hold it. When you hear the beep, switch.";break;
@@ -1225,8 +1182,8 @@ function runTool(title,mount){openSheet();clean();$("sprog").style.width="0";say
 
 /* ================= mastery, levels, workout ================= */
 const knownChords=()=>Object.keys(known).filter(c=>CH[c]&&c!=="open");
-// 0-100: knowing it, clean String Doctor checks, fastest change into/out of it, best one-minute count
-function mastery(c){if(!known[c])return 0;let m=25+Math.min(25,(cleanN[c]||0)*5);
+// 0-100: knowing it, fastest change into/out of it, best one-minute count
+function mastery(c){if(!known[c])return 0;let m=40+Math.min(10,(cleanN[c]||0)*2);
   const rs=Object.entries(bests).filter(([k])=>k.split("→").includes(c)).map(x=>x[1]);if(rs.length){const b=Math.min(...rs);m+=b<1?25:b<1.5?20:b<2?15:b<3?10:5}
   const om=Object.entries(onemin).filter(([k])=>k.split("-").includes(c)).map(x=>x[1]);if(om.length){const b=Math.max(...om);m+=b>=30?25:b>=20?18:b>=12?12:6}
   return Math.min(100,m)}
@@ -1243,7 +1200,7 @@ function buildWorkout(){const steps=[],plan=[],add=(sec,arr,mins)=>{plan.push({s
   if(done.spider){const sp=LESSONS.find(l=>l.id==="spider")?.steps.find(s=>s.type==="notes");if(sp)add("Warm-up",[sp],1)}
   const nl=nextLesson();if(nl)add(nl.t,[...lessonSteps(nl),{mark:nl.id}],nl.song?4:5);
   const fresh=nl?.steps.find(s=>s.learn)?.learn,rev=knownChords().filter(c=>c!==fresh).sort((a,b)=>mastery(a)-mastery(b))[0];
-  if(rev)add("Check "+label(rev),[{type:"chordcheck",c:rev}],1);
+  if(rev)add(label(rev)+" reps",[{type:"reps",c:rev,n:5}],1);
   const pr=weakPair(fresh);if(pr)add(pr.map(label).join(" ⇄ "),[{type:"onemin",pair:pr}],1.5);
   const rs=readySongs()[0];if(rs)add("Jam: "+rs[1].t,[{type:"jam",song:rs[0],passes:1}],3);
   return {steps,plan,mins:Math.round(plan.reduce((a,p)=>a+p.mins,0))}}
@@ -1260,7 +1217,7 @@ function drawHome(){const W0=buildWorkout(),m=Math.floor(sessionMin()),nl=nextLe
   $("goalTxt").textContent=`${m} of ${cfg.goal} minutes today`;$("goalBar").style.width=Math.min(100,m/cfg.goal*100)+"%";
   $("cont").hidden=!nl;if(nl){$("cont").textContent="Or just the next lesson: "+nl.t;$("cont").onclick=()=>runLesson(nl)}
   const kn=knownChords();$("rings").innerHTML=kn.length?kn.map(c=>`<button class="ringc" data-c="${c}">${ring(mastery(c),c.length>3?label(c).replace("Easy ","~"):c)}<span>${mastery(c)}%</span></button>`).join(""):`<p class="mute">Your first chord shows up here after the Em lesson.</p>`;
-  $("rings").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>runTool("String doctor: "+label(b.dataset.c),el=>mountDoctor(el,{c:b.dataset.c})));
+  $("rings").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>runTool(label(b.dataset.c)+" reps",el=>mountReps(el,{c:b.dataset.c,n:5})));
   const li=lvOf(st.xp),nx=LV[li+1];$("lvname").textContent=`Lv ${li+1} · ${LV[li][1]}`;$("lvnext").textContent=nx?`${nx[0]-st.xp} ⭐ to ${nx[1]}`:"Max level";$("lvbar").style.width=(nx?(st.xp-LV[li][0])/(nx[0]-LV[li][0])*100:100)+"%";
   $("journey").innerHTML=`<b>${n}/${LESSONS.length}</b> lessons · <b>${kn.length}</b> chords · <b>${st.streak}</b>-day streak<br>${nl?`You're in <b>${UNITS[nl.unit].t}</b>.`:"Course complete. Keep adding songs!"}`;
   const hr=new Date().getHours();
@@ -1306,7 +1263,7 @@ const BADGES=[
  ["rec","🎙️","Heard yourself",()=>counters.rec>=1],
 ];
 function checkBadges(){BADGES.forEach(([id,i,t,f])=>{if(!badges[id]&&f()){badges[id]=1;save();setTimeout(()=>toast(`Badge unlocked: ${i} ${t}`),900)}})}
-BADGES.push(["doc","🩺","Clean chord",()=>Object.values(cleanN).some(v=>v>=1)],["work1","💪","First workout",()=>counters.workouts>=1],["work10","🏋️","10 workouts",()=>counters.workouts>=10],["jam1","🎧","First jam",()=>counters.jams>=1]);
+BADGES.push(["work1","💪","First workout",()=>counters.workouts>=1],["work10","🏋️","10 workouts",()=>counters.workouts>=10],["jam1","🎧","First jam",()=>counters.jams>=1]);
 
 function drawWeek(){
   const days=[...Array(7)].map((_,i)=>new Date(Date.now()-(6-i)*864e5)),key=d=>d.toDateString();
@@ -1324,7 +1281,6 @@ function drawPractice(){const T=$("tools");T.innerHTML="";const kn=Object.keys(k
   for(let a=0;a<kn.length;a++)for(let b=a+1;b<kn.length;b++)pairs.push([kn[a],kn[b]]);
   const tools=[
     ["🎚️","Tuner","Tune every session",true,()=>runTool("Tuner",el=>mountTuner(el,{}))],
-    ["🩺","String doctor","Finds your dead string",knownChords().length>0,()=>runTool("String doctor",el=>{const s=h("select","");s.setAttribute("aria-label","Chord");s.innerHTML=knownChords().map(c=>`<option value="${c}">${label(c)}</option>`).join("");s.value=knownChords().at(-1);el.append(s);const box=h("div","stack");el.append(box);const go=()=>{clean();box.innerHTML="";mountDoctor(box,{c:s.value})};s.onchange=go;go()})],
     ["⏲️","Metronome","Keep perfect time",true,()=>runTool("Metronome",mountMetronome)],
     ["🥁","Strum trainer","Patterns + timing score",!!done.strumopen,()=>runTool("Strum trainer",el=>{const sel=h("div","grid2");sel.innerHTML=`<select aria-label="Pattern">${Object.entries(PATTERNS).map(([k,p])=>`<option value="${k}">${p.name}</option>`).join("")}</select><select aria-label="Chord">${Object.keys(known).map(c=>`<option value="${c}">${label(c)}</option>`).join("")}</select>`;el.append(sel);const box=h("div","stack");el.append(box);
       const go=()=>{clean();box.innerHTML="";mountStrum(box,{pat:sel.children[0].value,chords:[sel.children[1].value],bpm:60,bars:8})};sel.onchange=go;go()})],
@@ -1337,7 +1293,7 @@ function drawPractice(){const T=$("tools");T.innerHTML="";const kn=Object.keys(k
     ["🪶","Picking patterns","Fingerpicking drills",!!done.pickbasics,()=>runLesson(LESSONS.find(l=>l.id==="arpgc"))],
   ];
   tools.forEach(([i,t,d,ok,fn])=>{const b=h("button","tool"+(ok?"":" locked"),`<span class="i">${i}</span><b>${t}</b><span class="mute">${ok?d:"🔒 Unlocks in Learn"}</span>`);b.onclick=()=>ok?fn():($("psay").textContent="Learn the basics first. It unlocks along the path.");T.append(b)});
-  const lib=$("lib");lib.innerHTML="";Object.keys(CH).filter(c=>c!=="open").forEach(c=>{const k=known[c];const b=h("button","libc",`<b>${label(c)}</b>${dia(c)}<span class="mute">${k?`🩺 ${mastery(c)}% · check it`:"🔒 tap to hear"}</span>`);b.style.opacity=k?1:.5;b.onclick=()=>{strum(c);if(k)runTool("String doctor: "+label(c),el=>mountDoctor(el,{c}))};lib.append(b)})}
+  const lib=$("lib");lib.innerHTML="";Object.keys(CH).filter(c=>c!=="open").forEach(c=>{const k=known[c];const b=h("button","libc",`<b>${label(c)}</b>${dia(c)}<span class="mute">${k?`${mastery(c)}% · tap to hear`:"🔒 tap to hear"}</span>`);b.style.opacity=k?1:.5;b.onclick=()=>strum(c);lib.append(b)})}
 $("cs-pat").innerHTML=Object.entries(PATTERNS).map(([k,p])=>`<option value="${k}">${p.name}</option>`).join("");$("cs-pat").value="folk";
 $("cs-add").onclick=()=>{const name=$("cs-name").value.trim()||"My song",raw=$("cs-ch").value.trim().split(/[\s,|]+/).filter(Boolean);
   const prog=raw.map(x=>Object.keys(CH).find(c=>c!=="open"&&c.toLowerCase()===x.toLowerCase())),bad=raw.filter((x,i)=>!prog[i]);
@@ -1414,5 +1370,5 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>tab(b.dataset.t
 refresh();
 </script>
 <script src="studio.js?v=25"></script>
-<script src="revise.js?v=2"></script>
+<script src="revise.js?v=3"></script>
 </body></html>
