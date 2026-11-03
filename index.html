@@ -475,6 +475,7 @@ let done=S("done",{});         // lesson id → true
 let known=S("known",{open:1});  // chord → true
 let bests=S("bests",{});       // "A→B" race secs
 let onemin=S("onemin",{});     // "A-B" changes in 60s
+let focus=S("focus",[["Am","E"],["Am","Dm"],["A","Dm"],["Em","D"],["C","Am"],["C","A"],["C","G"],["G","E"]]); // pinned change pairs, drilled in every recap
 let badges=S("badges",{});
 let cfg=S("cfg",{left:false,goal:15,guide:true,easy:true});cfg.voice??=true;cfg.view??="chart";
 let custom=S("custom",[]);
@@ -482,7 +483,7 @@ let lyrics=S("lyrics",{}); // pasted chord sheets per song key ("perfect", "c:Co
 let counters=S("counters",{ear:0,quiz:0,songs:0,tuned:0,notes:0,groove:0});
 let log=S("log",{done:{},race:{}});let cleanN=S("clean",{}),jam=S("jam",{}); // clean String Doctor checks per chord; per-song jam speed/best; // per-day history for the weekly card: lessons finished, average change time
 function logRace(secs){const d=today(),r=log.race[d]||{sum:0,n:0};r.sum+=secs;r.n++;log.race[d]=r;save()}
-function save(){W("log",log);W("stats",st);W("done",done);W("known",known);W("bests",bests);W("onemin",onemin);W("badges",badges);W("cfg",cfg);W("custom",custom);W("lyrics",lyrics);W("counters",counters);W("clean",cleanN);W("jam",jam)}
+function save(){W("log",log);W("stats",st);W("done",done);W("known",known);W("bests",bests);W("onemin",onemin);W("badges",badges);W("cfg",cfg);W("focus",focus);W("custom",custom);W("lyrics",lyrics);W("counters",counters);W("clean",cleanN);W("jam",jam)}
 function addXp(n){if(st.last!==today()){const y=new Date(Date.now()-864e5).toDateString();st.streak=st.last===y?st.streak+1:1;st.last=today()}
   st.xp+=n;save();drawStats();checkBadges()}
 function drawStats(){$("streak").textContent="🔥 "+st.streak;$("xp").textContent="⭐ "+st.xp;const li=lvOf(st.xp);$("lv").textContent="Lv "+(li+1);
@@ -1285,7 +1286,14 @@ function drawPractice(){const T=$("tools");T.innerHTML="";const kn=Object.keys(k
     ["🥁","Strum trainer","Patterns + timing score",!!done.strumopen,()=>runTool("Strum trainer",el=>{const sel=h("div","grid2");sel.innerHTML=`<select aria-label="Pattern">${Object.entries(PATTERNS).map(([k,p])=>`<option value="${k}">${p.name}</option>`).join("")}</select><select aria-label="Chord">${Object.keys(known).map(c=>`<option value="${c}">${label(c)}</option>`).join("")}</select>`;el.append(sel);const box=h("div","stack");el.append(box);
       const go=()=>{clean();box.innerHTML="";mountStrum(box,{pat:sel.children[0].value,chords:[sel.children[1].value],bpm:60,bars:8})};sel.onchange=go;go()})],
     ["⏱️","Change race","Beat your best switch",pairs.length>0,()=>runTool("Change race",el=>mountRace(el,{pairs:pairs.flatMap(p=>[p,[p[1],p[0]]])}))],
-    ["6️⃣","One-minute changes","How many in 60s?",pairs.length>0,()=>runTool("One-minute changes",el=>{const s=h("select","");s.setAttribute("aria-label","Chord pair");s.innerHTML=pairs.map((p,i)=>`<option value="${i}">${label(p[0])} ⇄ ${label(p[1])}</option>`).join("");el.append(s);const box=h("div","stack");el.append(box);const go=()=>{clean();box.innerHTML="";mountOneMin(box,{pair:pairs[+s.value]})};s.onchange=go;go()})],
+    ["6️⃣","One-minute changes","How many in 60s?",pairs.length>0,()=>runTool("One-minute changes",el=>{
+      // pinned pairs come first, and the pin button adds or drops a pair from every recap
+      const pk=p=>[...p].sort().join("-"),pinned=p=>focus.some(f=>pk(f)===pk(p)),list=[...focus.filter(p=>p.every(c=>known[c])),...pairs.filter(p=>!pinned(p))];
+      const top=h("div","row"),s=h("select","");s.setAttribute("aria-label","Chord pair");
+      const opts=()=>{const v=s.value;s.innerHTML=list.map((p,i)=>`<option value="${i}">${pinned(p)?"📌 ":""}${label(p[0])} ⇄ ${label(p[1])}</option>`).join("");if(v)s.value=v};opts();
+      const pin=h("button","ghost",""),drawPin=()=>pin.textContent=pinned(list[+s.value])?"📌 Pinned to recap":"Pin to recap";
+      pin.onclick=()=>{const p=list[+s.value];focus=pinned(p)?focus.filter(f=>pk(f)!==pk(p)):[...focus,p];save();opts();drawPin();toast(pinned(p)?"Pinned. It's in every recap now.":"Unpinned")};
+      top.append(s,pin);el.append(top);const box=h("div","stack");el.append(box);const go=()=>{clean();box.innerHTML="";drawPin();mountOneMin(box,{pair:list[+s.value]})};s.onchange=go;go()})],
     ["👂","Ear trainer","Major vs minor, string names",!!done.strings,()=>runTool("Ear trainer",el=>{const r=h("div","row");el.append(r);const box=h("div","stack");el.append(box);btn(r,"Happy or sad","ghost",()=>{box.innerHTML="";mountEar(box,{kind:"majmin",n:10})});btn(r,"Which string","ghost",()=>{box.innerHTML="";mountEar(box,{kind:"string",n:10})});mountEar(box,{kind:"majmin",n:10})})],
     ["🎼","Ode to Joy","Melody practice",!!done.ode,()=>runLesson(LESSONS.find(l=>l.id==="ode"))],
     ["🕷️","Finger warm-up","1-2-3-4 drill",!!done.spider,()=>runLesson(LESSONS.find(l=>l.id==="spider"))],
@@ -1370,5 +1378,5 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>tab(b.dataset.t
 refresh();
 </script>
 <script src="studio.js?v=25"></script>
-<script src="revise.js?v=4"></script>
+<script src="revise.js?v=5"></script>
 </body></html>
