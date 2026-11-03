@@ -59,7 +59,7 @@ function revSession(pool,maxMin=10,extra=false){
 // the 20-minute recap: a proper lesson through everything you know, in the order a teacher would run it.
 // Weakest skills first in each part; if you don't know enough yet to fill 20 minutes, a speed round on your weakest changes tops it up.
 const PARTS={"Warm-up":"Tune up and wake your fingers.",Chords:"Every chord you know, weakest first. Lift off, land the shape, strum.",
-  Changes:"One-minute changes on the pairs that need it most.",Strumming:"Your strum patterns, 8 bars each. Lock in with the beat.",
+  "Focus pairs":"The changes you pinned. One minute each, every recap.",Changes:"One-minute changes on the pairs that need it most.",Strumming:"Your strum patterns, 8 bars each. Lock in with the beat.",
   "Riffs & ears":"Single notes and ear training.",Theory:"Quick questions. Guitar can rest on your knee.",
   "Speed round":"Back to your weakest changes. Beat the score you just set.",Song:"Finish with a whole song."};
 function revLesson(pool,target=20){
@@ -68,16 +68,21 @@ function revLesson(pool,target=20){
   put("Warm-up",{id:"tune",cat:"Warm-up",name:"Tune up",step:{type:"tuner"},noGrade:true},1.5);
   const spider=pool.find(i=>i.id.startsWith("notes:spider:"));if(spider)put("Warm-up",spider,.8);
   of("Chords").slice(0,10).forEach(it=>put("Chords",it,.5));
-  const ch=of("Changes");ch.slice(0,6).forEach(it=>put("Changes",it,1.2));
+  // pinned pairs (Gym → One-minute changes → Pin) are in every recap, graded on the same card as the normal change drill
+  const fp=focus.filter(p=>p.every(c=>known[c])&&!sameChord(p[0],p[1])).map(p=>({p,id:"change:"+[...p].sort().join("-")}));
+  const fIt=fp.map(({p,id})=>({...(pool.find(i=>i.id===id)||{id,cat:"Changes",name:p.map(label).join(" ⇄ "),st:revState[id]}),step:{type:"onemin",pair:p}}));
+  fIt.forEach(it=>put("Focus pairs",it,1.2));
+  const ch=of("Changes").filter(i=>!fIt.some(f=>f.id===i.id));ch.slice(0,6).forEach(it=>put("Changes",it,1.2));
   of("Strumming").slice(0,4).forEach(it=>put("Strumming",{...it,step:{...it.step,bars:8}},.8));
   of("Riffs & notes").filter(i=>i!==spider).slice(0,2).concat(of("Ears")).forEach(it=>put("Riffs & ears",it,.9));
   of("Theory").slice(0,3).forEach(it=>put("Theory",it,.3));
   const song=of("Songs")[0],total=()=>lessonMins(out)+(song?3:0);
   // too long: drop the strongest skill from whichever part is biggest (they're further down because they're solid)
-  const MIN={Chords:8,Changes:4,Strumming:1,"Riffs & ears":1,Theory:1};
+  const many=fIt.length>4,MIN={Chords:many?5:8,Changes:many?0:fIt.length?2:4,Strumming:1,"Riffs & ears":many?0:1,Theory:1};
   while(total()>target){const big=Object.keys(MIN).map(p=>[p,out.filter(i=>i.part===p).length-MIN[p]]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1])[0];
     if(!big)break;out.splice(out.map(i=>i.part).lastIndexOf(big[0]),1)}
-  for(let k=0;ch.length&&total()<target-1&&k<8;k++){const it=ch[k%Math.min(3,ch.length)];put("Speed round",{...it,name:it.name+" · beat your score"},1.2)}
+  const sp=[...fIt,...ch];
+  for(let k=0;sp.length&&total()<target-1&&k<8;k++){const it=sp[k%Math.min(4,sp.length)];put("Speed round",{...it,name:it.name+" · beat your score"},1.2)}
   if(song)put("Song",song,3);
   return out}
 const lessonMins=items=>Math.round(items.reduce((a,i)=>a+i.mins+.1,0));
