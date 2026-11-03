@@ -7,7 +7,7 @@ let revState=S("rev",{});
 {const _s=save;save=function(){_s();W("rev",revState)}}
 const REV_I=[0,2,4,7,14,30,60,90];
 const dayN=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5);
-const REVCAT={Chords:"🎸",Changes:"⇄",Strumming:"🥁","Riffs & notes":"🎵",Ears:"👂",Theory:"💡",Songs:"🎤"};
+const REVCAT={"Warm-up":"🎚️",Chords:"🎸",Changes:"⇄",Strumming:"🥁","Riffs & notes":"🎵",Ears:"👂",Theory:"💡",Songs:"🎤"};
 
 // every revisable skill, built from what you've learned so far
 function revItems(){const out=[],seen=new Set(),kn=knownChords();
@@ -56,8 +56,34 @@ function revSession(pool,maxMin=10,extra=false){
   while(more){more=false;for(const c of cats){const it=by[c].shift();if(!it)continue;more=true;if(it.cat==="Songs"&&out.some(x=>x.cat==="Songs"))continue;if(out.length&&t+it.mins>maxMin)continue;out.push(it);t+=it.mins}}
   return out}
 
+// the 20-minute recap: a proper lesson through everything you know, in the order a teacher would run it.
+// Weakest skills first in each part; if you don't know enough yet to fill 20 minutes, a speed round on your weakest changes tops it up.
+const PARTS={"Warm-up":"Tune up and wake your fingers.",Chords:"Every chord you know, weakest first. Lift off, land the shape, strum.",
+  Changes:"One-minute changes on the pairs that need it most.",Strumming:"Your strum patterns, 8 bars each. Lock in with the beat.",
+  "Riffs & ears":"Single notes and ear training.",Theory:"Quick questions. Guitar can rest on your knee.",
+  "Speed round":"Back to your weakest changes. Beat the score you just set.",Song:"Finish with a whole song."};
+function revLesson(pool,target=20){
+  const of=c=>pool.filter(i=>i.cat===c).sort((a,b)=>revStrength(a)-revStrength(b)||revDue(b)-revDue(a));
+  const out=[],put=(part,it,mins)=>out.push({...it,part,mins});
+  put("Warm-up",{id:"tune",cat:"Warm-up",name:"Tune up",step:{type:"tuner"},noGrade:true},1.5);
+  const spider=pool.find(i=>i.id.startsWith("notes:spider:"));if(spider)put("Warm-up",spider,.8);
+  of("Chords").slice(0,10).forEach(it=>put("Chords",it,.5));
+  const ch=of("Changes");ch.slice(0,6).forEach(it=>put("Changes",it,1.2));
+  of("Strumming").slice(0,4).forEach(it=>put("Strumming",{...it,step:{...it.step,bars:8}},.8));
+  of("Riffs & notes").filter(i=>i!==spider).slice(0,2).concat(of("Ears")).forEach(it=>put("Riffs & ears",it,.9));
+  of("Theory").slice(0,3).forEach(it=>put("Theory",it,.3));
+  const song=of("Songs")[0],total=()=>lessonMins(out)+(song?3:0);
+  // too long: drop the strongest skill from whichever part is biggest (they're further down because they're solid)
+  const MIN={Chords:8,Changes:4,Strumming:1,"Riffs & ears":1,Theory:1};
+  while(total()>target){const big=Object.keys(MIN).map(p=>[p,out.filter(i=>i.part===p).length-MIN[p]]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1])[0];
+    if(!big)break;out.splice(out.map(i=>i.part).lastIndexOf(big[0]),1)}
+  for(let k=0;ch.length&&total()<target-1&&k<8;k++){const it=ch[k%Math.min(3,ch.length)];put("Speed round",{...it,name:it.name+" · beat your score"},1.2)}
+  if(song)put("Song",song,3);
+  return out}
+const lessonMins=items=>Math.round(items.reduce((a,i)=>a+i.mins+.1,0));
+
 /* ----- the tab ----- */
-function drawRevise(){const box=$("revise");if(!box)return;const pool=revItems(),due=pool.filter(revDue),today=revSession(pool),mins=Math.max(2,Math.round(today.reduce((a,i)=>a+i.mins,0)));
+function drawRevise(){const box=$("revise");if(!box)return;const pool=revItems(),due=pool.filter(revDue),today=revSession(pool),mins=Math.max(2,Math.round(today.reduce((a,i)=>a+i.mins,0))),recap=revLesson(pool),parts=[...new Set(recap.map(i=>i.part))];
   const avg=pool.length?Math.round(pool.reduce((a,i)=>a+revStrength(i),0)/pool.length):0,learned=pool.filter(i=>i.st).length;
   if(!pool.length){box.innerHTML=`<div class="card rv-empty"><h2>Nothing to revise yet</h2><p class="mute">Finish your first lessons in Learn. Everything you learn shows up here, and Bruv brings it back just before you'd forget it.</p><button class="big" data-go-learn>Go to Learn</button></div>`;
     box.querySelector("[data-go-learn]").onclick=()=>tab("learn");$("rsay").textContent="Learn something first, then I'll make sure you never lose it.";return}
@@ -65,29 +91,37 @@ function drawRevise(){const box=$("revise");if(!box)return;const pool=revItems()
   const units=UNITS.map((u,ui)=>({u,ui,its:pool.filter(i=>i.unit===ui)})).filter(x=>x.its.length);
   const cats=Object.keys(REVCAT).map(c=>[c,pool.filter(i=>i.cat===c)]).filter(([,a])=>a.length);
   box.innerHTML=`
-   <div class="card hero rv-hero"><div class="rv-herotop"><div><span class="rv-eyebrow">Today's revision</span><h2>${due.length?`${today.length} drill${today.length>1?"s":""} · ~${mins} min`:"You're all caught up"}</h2></div>
+   <div class="card hero rv-hero"><div class="rv-herotop"><div><span class="rv-eyebrow">Today's revision</span><h2>Full recap · ~${lessonMins(recap)} min</h2></div>
       <div class="rv-gauge" style="--p:${avg}"><b>${avg}%</b><span>memory</span></div></div>
-     ${due.length?`<div class="chips">${today.map(i=>`<span class="chip">${REVCAT[i.cat]} ${esc(i.name)}</span>`).join("")}</div>`:`<p class="mute">Everything you've learned is fresh. Want a bonus round on your weakest skills anyway?</p>`}
-     <button class="big xl" data-today>${due.length?"▶ Start revision":"▶ Bonus round"}</button>
+     <div class="chips">${parts.map((p,n)=>{const k=recap.filter(i=>i.part===p).length;return`<span class="chip">${n+1} · ${esc(p)}${k>1?` ×${k}`:""}</span>`}).join("")}</div>
+     <p class="mute">A full lesson through everything you've learned, weakest first: ${recap.length} drills in ${parts.length} parts.</p>
+     <div class="row"><button class="big xl" data-recap>▶ Start the recap</button>${due.length?`<button class="ghost" data-today>Just what's due · ~${mins} min</button>`:""}</div>
      <p class="mute">${learned} of ${pool.length} skills reviewed so far. Each one comes back just before you'd forget it.</p></div>
    ${units.length?`<div class="card"><h2>Revise a unit</h2><p class="mute">Run through everything from one part of the course, mixed up.</p><div class="rv-units">${units.map(({u,ui,its})=>{const s=Math.round(its.reduce((a,i)=>a+revStrength(i),0)/its.length),d=its.filter(revDue).length;
       return`<button class="rv-unit" data-unit="${ui}"><span class="rv-ring" style="--p:${s}"><i>${s}</i></span><span><b>${esc(u.t.replace(/^\d+\s*·\s*/,""))}</b><small>${its.length} skills${d?` · ${d} due`:""}</small></span></button>`}).join("")}</div></div>`:""}
    ${cats.map(([c,its])=>`<div class="card rv-cat"><div class="rv-cathead"><h2><span class="rv-ic">${REVCAT[c]}</span>${c}</h2><button class="ghost" data-cat="${esc(c)}">Drill all</button></div>
      <div class="rv-list">${its.sort((a,b)=>revStrength(a)-revStrength(b)).map(it=>{const s=revStrength(it),bx=it.st?.box||0;
        return`<button class="rv-item${revDue(it)?" due":""}" data-id="${esc(it.id)}"><span class="rv-name">${esc(it.name)}</span><span class="rv-boxes" aria-label="Memory level ${bx} of 7">${Array.from({length:7},(_,k)=>`<i class="${k<bx?"on":""}"></i>`).join("")}</span><span class="rv-due">${dueLabel(it)}</span><span class="rv-pct">${s}%</span></button>`}).join("")}</div></div>`).join("")}`;
-  box.querySelector("[data-today]").onclick=()=>{const s=due.length?today:revSession(pool,10,true);if(s.length)runRevision(due.length?"Revision":"Bonus round",s)};
+  box.querySelector("[data-recap]").onclick=()=>runRevision("Full recap",revLesson(revItems()));
+  box.querySelector("[data-today]")?.addEventListener("click",()=>runRevision("Revision",today));
   box.querySelectorAll("[data-unit]").forEach(b=>b.onclick=()=>{const ui=+b.dataset.unit,its=pool.filter(i=>i.unit===ui);runRevision(UNITS[ui].t.replace(/^\d+\s*·\s*/,""),revSession(its,30,true))});
   box.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{const its=pool.filter(i=>i.cat===b.dataset.cat);runRevision(b.dataset.cat,revSession(its,30,true))});
   box.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>{const it=pool.find(i=>i.id===b.dataset.id);runRevision(it.name,[it])})}
 {const _r=refresh;refresh=function(){_r();drawRevise()}}
 
 /* ----- the session runner: drill, then grade, then the next drill ----- */
-function runRevision(title,items){let i=0;const res=[];const s0=items.map(it=>revStrength(it));ears();openSheet();
+function runRevision(title,items){let i=0,introd=-1;const res=[],t0=Date.now();const s0=items.filter(it=>!it.noGrade).map(it=>revStrength(it));ears();openSheet();
+  const parts=[...new Set(items.map(it=>it.part).filter(Boolean))];
   function show(){clean();lastResult=null;const it=items[i];if(!it){finish();return}
     const el=$("scard");el.innerHTML="";$("sprog").style.width=(i/items.length*100)+"%";
-    el.append(h("div","stitle",`<span class="sec">${REVCAT[it.cat]} ${it.cat}</span>${esc(it.name)}`));
-    el.append(h("div","rv-step mute",`Drill ${i+1} of ${items.length} · ${dueLabel(it)}`));
-    const body=h("div","stack");el.append(body);MOUNT[it.step.type](body,it.step,()=>rate(it));narrate(it.step);$("sheet").scrollTop=0}
+    // a short title card at the start of each part, so it feels like a lesson rather than a pile of drills
+    if(it.part&&introd!==i&&it.part!==items[i-1]?.part){introd=i;const p=it.part,its=items.filter(x=>x.part===p),m=Math.max(1,lessonMins(its));
+      el.append(h("div","stitle",`<span class="sec">Part ${parts.indexOf(p)+1} of ${parts.length}</span>${esc(p)}`));
+      const b=h("div","rv-rate",`<div class="body">${PARTS[p]}<small>${its.length} drill${its.length>1?"s":""} · about ${m} min</small></div><div class="row" data-r></div>`);el.append(b);
+      const r=b.querySelector("[data-r]");btn(r,"Start","big",show);autoNext(r,show,4);say(`Part ${parts.indexOf(p)+1}. ${p}. ${PARTS[p]}`);$("sheet").scrollTop=0;return}
+    el.append(h("div","stitle",`<span class="sec">${REVCAT[it.cat]} ${it.part||it.cat}</span>${esc(it.name)}`));
+    el.append(h("div","rv-step mute",`Drill ${i+1} of ${items.length}${it.noGrade?"":" · "+dueLabel(it)}`));
+    const body=h("div","stack");el.append(body);MOUNT[it.step.type](body,it.step,()=>{if(it.noGrade){i++;show()}else rate(it)});narrate(it.step);$("sheet").scrollTop=0}
   function rate(it){const r=lastResult,sg=suggestGrade(r);clean();const el=$("scard");el.innerHTML="";
     el.append(h("div","stitle",`<span class="sec">${REVCAT[it.cat]} ${it.cat}</span>${esc(it.name)}`));
     const G=[["Again","Forgot it / messy"],["Hard","Got there, with effort"],["Good","Solid"],["Easy","Didn't have to think"]];
@@ -101,9 +135,9 @@ function runRevision(title,items){let i=0;const res=[];const s0=items.map(it=>re
     else say("How did that feel?")}
   function finish(){clean();$("sprog").style.width="100%";ding();const el=$("scard");el.innerHTML="";
     const up=Math.round(res.reduce((a,{it})=>a+revStrength({st:revState[it.id]}),0)/Math.max(1,res.length)-s0.reduce((a,b)=>a+b,0)/Math.max(1,s0.length));
-    const cnt=[0,0,0,0];res.forEach(r=>cnt[r.q]++);addXp(Math.min(15,res.length*2));counters.revisions=(counters.revisions||0)+1;save();
+    const cnt=[0,0,0,0];res.forEach(r=>cnt[r.q]++);addXp(Math.min(30,res.length*2));counters.revisions=(counters.revisions||0)+1;save();
     el.append(h("div","stitle","Revision done 🧠"));
-    el.append(h("div","rv-sum",[["Drills",res.length],["Memory",(up>=0?"+":"")+up+"%"],["Nailed",cnt[2]+cnt[3]],["Coming back tomorrow",cnt[0]+cnt[1]]].map(([a,b])=>`<div><b>${b}</b><span>${a}</span></div>`).join("")));
+    el.append(h("div","rv-sum",[["Minutes",Math.max(1,Math.round((Date.now()-t0)/6e4))],["Drills",res.length],["Memory",(up>=0?"+":"")+up+"%"],["Nailed",cnt[2]+cnt[3]]].map(([a,b])=>`<div><b>${b}</b><span>${a}</span></div>`).join("")));
     if(cnt[0]+cnt[1])el.append(h("p","mute",`Back tomorrow: ${res.filter(r=>r.q<=1).map(r=>esc(r.it.name)).join(", ")}.`));
     say(cnt[0]+cnt[1]===0?"Clean sweep. Your memory's a vault.":rnd(["Done. The shaky ones come back tomorrow.","That's how it sticks. Same again tomorrow.","Revision done. Future you says thanks."]));
     const r=h("div","row");el.append(r);btn(r,"Done","big",closeSheet);drawRevise()}
