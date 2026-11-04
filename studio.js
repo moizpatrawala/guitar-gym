@@ -372,6 +372,7 @@ function mountStudioJam(el,song){
       <section class="sk-left">
         <div class="sk-panel sk-now"><div class="sk-ch"><span class="sk-lbl">Now</span><div class="sk-chord" data-c>…</div></div><div class="sk-dia" data-d></div></div>
         <div class="sk-panel sk-next"><span class="sk-lbl">Next</span><b data-nx></b><div class="sk-dots" data-dots></div></div>
+        <div class="sk-panel sk-strum"><div class="sk-strumhd"><span class="sk-lbl">Strum</span><select data-pat aria-label="Strum pattern">${Object.entries(PATTERNS).map(([k,p])=>`<option value="${k}">${p.name}</option>`).join("")}</select></div><div class="sk-lane" data-lane></div></div>
         <div class="sk-wait" data-wait hidden></div>
         <div class="sk-panel sk-status"><img src="bruv/talk_1.png" alt=""><div class="sk-statxt"><p data-say></p><div class="sk-ear" data-earbox hidden><span class="dot"></span><span data-ear></span><b data-heard></b></div></div></div>
         <div class="best sk-res" data-res hidden></div>
@@ -420,9 +421,14 @@ function mountStudioJam(el,song){
     const ln=ev.filter(x=>x.li===e.li),nx=ev.find(x=>x.li>e.li);return[ln[0].t-.4,nx?nx.t-.05:song.dur]};
   function setLoop(on){loop=on?lineSpan():null;q('[data-a="lp"]').setAttribute("aria-pressed",!!loop);if(loop){toast("Looping this line");audio.currentTime=loop[0];waited=new Set(ev.filter(e=>e.t<loop[0]).map(e=>e.i))}}
   q('[data-a="lp"]').onclick=()=>setLoop(!loop);
-  let shown=-2;
+  let shown=-2,pat=PATTERNS[song.pat]?song.pat:song.bpb===3?"waltz2":"folk",laneK=-2;
+  const lane=q("[data-lane]"),drawLane=()=>{const P=PATTERNS[pat];lane.style.gridTemplateColumns=`repeat(${P.slots.length},1fr)`;lane.innerHTML=strumCells(P);laneK=-2};
+  q("[data-pat]").value=pat;q("[data-pat]").onchange=e=>{pat=e.target.value;song.pat=pat;STU.put(song);drawLane()};drawLane();
+  const strumSlot=t=>{const B=song.beats,bi=evAt(beatEv,t);if(bi<0||audio.paused&&!waiting)return-1;const bpb=song.bpb||4,j=bi-(((bi-(song.phase||0))%bpb)+bpb)%bpb;if(j<0)return-1;
+    const t0=B[j],t1=B[j+bpb]??t0+bpb*bp,n=PATTERNS[pat].slots.length;return Math.min(n-1,Math.max(0,Math.floor((t-t0)/(t1-t0)*n)))};
   const nowT=()=>Math.max(0,audio.currentTime-outLat());
   function render(force){const t=nowT(),k=evAt(ev,t),beatIx=evAt(beatEv,t);q("[data-t]").textContent=fmtT(t);draw(t);lv(k,t);
+    const sk=strumSlot(t);if(sk!==laneK){laneK=sk;[...lane.children].forEach((c,j)=>c.classList.toggle("on",j===sk))}
     if(k!==shown||force){shown=k;const cur=k>=0?ev[k]:null,nx=ev[k+1],cs=cur?playShape(cur.c,song.capo):null,C=q("[data-c]");
       C.textContent=cur?showName(cur.c,song.capo):"Intro";C.classList.toggle("long",C.textContent.length>3);C.classList.toggle("unk",!!cur&&!cs);
       q("[data-d]").innerHTML=cs?dia(cs):cur?`<div class="sk-nodia">Not in your chords yet</div>`:dia(playShape(ev[0].c,song.capo)||"open");

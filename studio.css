@@ -199,3 +199,15 @@ body.sk-drop::after{content:"Drop the song. Bruv's listening.";position:fixed;in
 /* a jam owns the whole sheet: no card chrome or repeated title around the stage */
 #scard:has(.sk-stage){background:none;border:0;padding:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
 #scard:has(.sk-stage) > .stitle{display:none}
+
+/* strum strip on the jam stage: the pattern for one bar, lit in time with the song */
+.sk-strum{display:grid;gap:8px;padding-top:12px;padding-bottom:12px}
+.sk-strumhd{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sk-strumhd select{width:auto;padding:4px 10px;font-size:12.5px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.sk-strumhd select option{color:#0f1020}
+.sk-lane{display:grid;gap:4px}
+.sk-lane .sc{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);box-shadow:none;padding:6px 0 5px;border-radius:10px}
+.sk-lane .sc i{font-size:20px;color:#fff}.sk-lane .sc b{font-size:11px;color:rgba(255,255,255,.7)}.sk-lane .sc small{display:none}
+.sk-lane .sc.ghost{background:transparent;border-style:dashed}.sk-lane .sc.ghost i{color:rgba(255,255,255,.3)}
+.sk-lane .sc.on{background:var(--sunset);border-color:transparent;transform:translateY(-2px)}.sk-lane .sc.on i,.sk-lane .sc.on b{color:#1d1300}
+.sk-lane .sc.ghost.on{background:rgba(255,255,255,.22)}.sk-lane .sc.ghost.on i{color:#fff}
