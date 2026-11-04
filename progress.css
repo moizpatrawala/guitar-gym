@@ -1,0 +1,35 @@
+/* Progress card on the Me tab: stat tiles, a 14-day practice chart, one-minute change cards with a target bar, two trend lines */
+.pg{display:grid;gap:18px;grid-column:1/-1}
+.pg-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.pg-tiles div{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:2px}
+.pg-tiles b{font:850 28px/1 var(--round);letter-spacing:-.04em;color:var(--text)}
+.pg-tiles span{font-size:12.5px;color:var(--text2)}
+.pg-block{display:grid;gap:8px;min-width:0}
+.pg-block h3{margin:0;font:750 15px var(--sans);letter-spacing:-.01em;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pg-block h3 small{font:600 12px var(--sans);color:var(--text3)}
+.pg-block p.mute{margin:0;font-size:12.5px}
+.pg-up{font:650 12px var(--sans);color:#0b8f55}
+.pg-chart{background:#fff;border:1px solid var(--line);border-radius:16px;padding:8px 6px 2px}
+.pg-svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.pg-grid{stroke:rgba(16,18,40,.07);stroke-width:1}
+.pg-ax{font:600 10.5px var(--sans);fill:var(--text3)}
+.pg-goal{stroke:var(--text3);stroke-width:1.2;stroke-dasharray:4 4;opacity:.7}
+.pg-bar{fill:#c9cfde}.pg-bar.goal{fill:var(--orange)}
+.pg-line{fill:none;stroke:var(--blue);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.pg-dot{fill:var(--blue);stroke:#fff;stroke-width:2}.pg-dot.last{fill:var(--orange)}
+.pg-cross{stroke:rgba(16,18,40,.25);stroke-width:1;opacity:0;pointer-events:none}
+.pg-pairs{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.pg-pair{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:grid;gap:6px}
+.pg-pair.pin{box-shadow:inset 3px 0 0 var(--orange)}
+.pg-ph{display:flex;justify-content:space-between;gap:6px;font-size:14px}
+.pg-pn{display:flex;align-items:baseline;gap:8px}
+.pg-pn b{font:850 26px/1 var(--round);letter-spacing:-.04em}
+.pg-pn span{font-size:12px;color:var(--text2)}
+.pg-bar30{height:6px;border-radius:3px;background:rgba(16,18,40,.08);overflow:hidden}
+.pg-bar30 i{display:block;height:100%;border-radius:3px;background:var(--sunset)}
+.pg-spark{width:100%;height:36px;display:block}
+.pg-spark .pg-line{stroke-width:2}
+.pg-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.pg-tip{position:fixed;z-index:200;pointer-events:none;background:#0f1020;color:#fff;border-radius:10px;padding:7px 10px;font-size:12.5px;display:grid;gap:1px;box-shadow:0 10px 24px -10px rgba(0,0,0,.5)}
+.pg-tip span{color:rgba(255,255,255,.7);font-size:11.5px}
+@media (max-width:720px){.pg-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.pg-two{grid-template-columns:1fr}}

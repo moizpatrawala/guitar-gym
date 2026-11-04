@@ -10,8 +10,9 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-512.png">
 <title>Bruv's Guitar Gym</title>
-<link rel="stylesheet" href="studio.css?v=24">
+<link rel="stylesheet" href="studio.css?v=25">
 <link rel="stylesheet" href="revise.css?v=1">
+<link rel="stylesheet" href="progress.css?v=2">
 <style>
 /* Layout: bright Liquid Glass. A slow colour mesh (amber, sky, blue, teal) sits behind frosted white panels.
    Laptops get a glass sidebar with coloured icon tiles, phones a glass tab bar. Ink text, an amber gradient for actions, navy and blue for depth. */
@@ -151,6 +152,19 @@ label.row{font-weight:500}
 
 /* strum lane */
 .lane{display:grid;gap:6px}
+.strum2{display:grid;grid-template-columns:120px minmax(0,1fr);gap:14px;align-items:stretch}
+.pend{width:120px;height:100%;min-height:120px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 2px 8px -4px rgba(16,18,40,.15)}
+.pend .pstr line{stroke:#b8bccb}.pend .pstr.hit line{animation:pstr .35s ease-out}
+@keyframes pstr{0%{stroke:var(--orange)}100%{stroke:#b8bccb}}
+.pend .pick path{fill:var(--orange);stroke:#1d1300;stroke-width:1.5;stroke-linejoin:round}.pend .pick.ghost path{fill:#fff;stroke:var(--text3);stroke-dasharray:3 3}
+.lane2{display:grid;gap:5px}
+.sc{display:grid;justify-items:center;gap:2px;padding:10px 0 8px;border-radius:14px;background:#fff;border:1px solid var(--line);box-shadow:0 2px 8px -4px rgba(16,18,40,.15);transition:transform .08s}
+.sc i{font:800 30px/1 var(--round);font-style:normal;color:var(--text)}.sc b{font:800 15px var(--round);color:var(--text2)}.sc small{font:700 10.5px var(--sans);text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
+.sc.ghost{background:transparent;border-style:dashed;box-shadow:none}.sc.ghost i{color:#cfd2dd}
+.sc.on{background:var(--sunset);border-color:transparent;transform:translateY(-3px);box-shadow:0 12px 26px -10px rgba(255,140,0,.6)}.sc.on i,.sc.on b,.sc.on small{color:#1d1300}
+.sc.ghost.on{background:#eef0f6;box-shadow:none}.sc.ghost.on i{color:var(--text2)}.sc.ghost.on b,.sc.ghost.on small{color:var(--text2)}
+.strum-tip{text-align:center;margin:0}
+@media (max-width:620px){.strum2{grid-template-columns:1fr}.pend{width:100%;height:110px}.sc i{font-size:22px}.sc small{display:none}}
 .slots{display:grid;gap:5px}
 .slot{border:1px solid var(--line);border-radius:14px;background:#fff;height:66px;display:grid;place-items:center;font:700 28px var(--round);color:var(--text);box-shadow:0 2px 8px -4px rgba(16,18,40,.15)}
 .slot.rest{color:#c5c7d3}
@@ -258,6 +272,20 @@ textarea{font:13px/1.5 ui-monospace,"SF Mono",Menlo,monospace;color:var(--text);
 .now.small{min-height:0;gap:14px}
 .now.small .cname{font-size:46px}
 .now.small svg{max-height:120px;width:auto}
+.clip{display:grid;gap:10px;justify-items:center;background:rgba(255,255,255,.72);border:1px solid var(--edge);border-radius:18px;padding:14px 18px;box-shadow:0 4px 14px -10px rgba(16,18,40,.35)}
+.clip-l{display:flex;gap:10px;align-items:center;font:800 20px var(--round);letter-spacing:-.02em;color:var(--text3)}
+.clip-l b{color:var(--text3);transition:color .3s}.clip-l b.on{color:var(--text)}
+.clip svg{cursor:pointer;max-width:100%;height:auto}
+.clip .fd{transition:transform .7s cubic-bezier(.55,0,.2,1),opacity .45s}
+.clip .fi{transition:transform .3s;transform-box:fill-box;transform-origin:center}
+.clip .fd.lift .fi{transform:scale(1.22)}
+.clip .mk{transition:opacity .45s}
+.clip.still .fd,.clip.still .mk{transition:none}
+.clip .ring{animation:anchor 1.6s ease-in-out infinite}
+@keyframes anchor{0%,100%{opacity:.25}50%{opacity:.9}}
+.clip.paused svg{opacity:.75}
+.clip ul{margin:0;padding-left:18px;display:grid;gap:5px;font-size:14.5px;line-height:1.4;justify-self:stretch;text-align:left}
+.clip small{color:var(--text3);font-size:12px}
 .docs{display:grid;gap:8px}
 .doc{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:13px;padding:10px 12px;font-weight:550;line-height:1.45}
 .doc b.s{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--hot);font-size:12px}
@@ -377,6 +405,7 @@ textarea{font:13px/1.5 ui-monospace,"SF Mono",Menlo,monospace;color:var(--text);
 </section>
 
 <section id="tab-me" class="stack" hidden>
+  <div class="card pg" id="progress"></div>
   <div class="card"><h2>Stats</h2><div class="best" id="mestats"></div></div>
   <div class="card"><h2>Badges</h2><div class="badges" id="badges"></div></div>
   <div class="card"><h2>Settings</h2>
@@ -468,9 +497,15 @@ const PATTERNS={
   downs:{name:"All downs",slots:"D.D.D.D.",beats:4,tip:"One strum on every beat. Count 1, 2, 3, 4."},
   du:{name:"Down-ups",slots:"DUDUDUDU",beats:4,tip:"Down on the numbers, up on the 'and'. Your hand never stops moving."},
   folk:{name:"Folk strum",slots:"D.DU.UDU",beats:4,tip:"Down, down-up, up-down-up. The hand keeps swinging even when it misses the strings."},
-  waltz:{name:"6/8 sway",slots:"D..D..",beats:6,tip:"Count 1 2 3 4 5 6. Strum on 1 and 4. Rocking, like a slow dance."},
+  waltz:{name:"6/8 sway",slots:"D..D..",motion:"DuuDuu",beats:6,tip:"Count 1 2 3 4 5 6. Strum on 1 and 4. Rocking, like a slow dance."},
   waltz2:{name:"6/8 full",slots:"D.DUDU",beats:6,tip:"Down on 1, then down-up down-up. This is the Perfect feel."},
 };
+
+// one cell per slot. The hand never stops: down on the numbers, up on the "and". A gap is a ghost strum: the hand still swings, it just misses the strings
+const strumDown=(P,k)=>P.motion?P.motion[k].toLowerCase()==="d":P.slots[k]!=="."?P.slots[k]==="D":k%2===0;
+const strumCount=P=>P.beats===6?["1","2","3","4","5","6"]:["1","&","2","&","3","&","4","&"];
+const strumCells=P=>[...P.slots].map((x,k)=>{const dn=strumDown(P,k),hit=x!==".";
+  return`<div class="sc ${hit?"hit":"ghost"} ${dn?"dn":"up"}"><i>${dn?"↓":"↑"}</i><b>${strumCount(P)[k]}</b><small>${hit?(dn?"Down":"Up"):"miss"}</small></div>`}).join("");
 
 /* ================= state ================= */
 let st=S("stats",{xp:0,streak:0,last:"",mins:{},totalSec:0});
@@ -588,6 +623,57 @@ function dia(name,hi=-1,marks){const c=CH[name]||SHAPES[name];if(!c)return "";
       if(f<0)s+=`<text x="${x}" y="14" fill="var(--hot)" font-size="12" font-weight="900" text-anchor="middle">✕</text>`;
       else if(f===0)s+=`<circle cx="${x}" cy="10" r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;else s+=dot(x,22+rel(f)*24-12,i);s+=badge(x,138,i)})}
   return `<span class="${cfg.left?"flip":""}">${s}</svg></span>`}
+/* change clips: an animated chord chart that moves your fingers from one shape to the next, with the hint for that change.
+   Green fingers stay down, teal ones slide along their string, blue ones lift and move. */
+const SNAME=["thickest (low E)","A","D","G","B","thinnest (high e)"];
+function fingerMap(c){const ch=CH[c],m={};ch.n.forEach((fg,i)=>{if(fg)(m[fg]=m[fg]||[]).push({s:i,f:ch.f[i]})});return m}
+const lowStr=c=>CH[c].f.findIndex(f=>f>=0);
+function changeHint(a,b){const A=fingerMap(a),B=fingerMap(b),tips=[],kind={},one=x=>x&&x.length===1?x[0]:null,F=[1,2,3,4];
+  F.forEach(f=>{const p=A[f],q=B[f];if(!p&&!q)return;if(!p){kind[f]="land";return}if(!q){kind[f]="lift";return}const P=one(p),Q=one(q);
+    if(!P||!Q){const ss=p.length===q.length&&p.every((x,k)=>x.s===q[k].s);kind[f]=ss&&p[0].f===q[0].f?"stay":ss?"slide":"move";return}
+    kind[f]=P.s===Q.s&&P.f===Q.f?"stay":P.s===Q.s?"slide":"move"});
+  // the whole hand moving as one block (Am → E, G7 → C)
+  const both=F.filter(f=>A[f]&&B[f]);let shift=null;
+  if(both.length>=2&&!F.some(f=>kind[f]==="land"||kind[f]==="lift")&&both.every(f=>A[f].length===B[f].length)){
+    const d=both.flatMap(f=>A[f].map((p,k)=>[B[f][k].s-p.s,B[f][k].f-p.f]));if(d.every(x=>x[0]===d[0][0]&&x[1]===d[0][1])&&(d[0][0]||d[0][1]))shift=d[0]}
+  const pl=(n,w)=>`${n} ${w}${n>1?"s":""}`;
+  if(shift){const[ds,df]=shift;tips.push(`<b>Move the whole shape as one block</b>${ds?`, ${pl(Math.abs(ds),"string")} ${ds>0?"thinner":"thicker"}`:""}${df?`${ds?" and":","} ${pl(Math.abs(df),"fret")} ${df>0?"up the neck":"towards the headstock"}`:""}. Keep your fingers locked in the shape.`)}
+  else{F.filter(f=>kind[f]==="stay").forEach(f=>{const p=A[f];tips.push(`<b>Keep finger ${f} down</b> on the ${p.length>1?"strings at":`${SNAME[p[0].s]} string,`} fret ${p[0].f}. It never lifts.`)});
+    F.filter(f=>kind[f]==="slide").forEach(f=>tips.push(`<b>Slide finger ${f}</b> along the ${SNAME[A[f][0].s]} string from fret ${A[f][0].f} to ${B[f][0].f}. Keep it touching the string.`));
+    if(!tips.length){const i=CH[b].f.findIndex((f,k)=>f>0&&CH[b].n[k]);if(i>=0)tips.push(`<b>Lead with finger ${CH[b].n[i]}</b>: aim it at the ${SNAME[i]} string, fret ${CH[b].f[i]}, and let the others land with it.`)}
+    else{const mv=F.filter(f=>kind[f]==="move"||kind[f]==="land");
+      if(mv.length===1){const q=B[mv[0]][0];tips.push(`<b>${F.some(f=>kind[f]==="slide")?"Finger":"Only finger"} ${mv[0]} moves</b>: to the ${SNAME[q.s]} string, fret ${q.f}.`)}else if(mv.length)tips.push(`Move the other fingers together, not one by one.`)}}
+  const la=lowStr(a),lb=lowStr(b);if(la!==lb)tips.push(`Strum from the <b>${SNAME[la]}</b> string for ${label(a)} and the <b>${SNAME[lb]}</b> string for ${label(b)}.`);
+  return{tips,kind}}
+function changeClip(a,b){const A=fingerMap(a),B=fingerMap(b),{tips,kind}=changeHint(a,b);
+  const up=[...CH[a].f,...CH[b].f].filter(f=>f>0),top=up.length?Math.max(...up):1,base=top>4?Math.min(...up):1,nf=Math.max(4,Math.min(6,top-base+1));
+  const SX=24,FY=32,X0=28,Y0=36,W=X0*2+SX*5,H=Y0+FY*nf+10,x=s=>X0+s*SX,y=f=>Y0+(f-base+.5)*FY;
+  const col={stay:"var(--good)",slide:"var(--teal)",move:"var(--blue)",land:"var(--blue)",lift:"var(--blue)"};
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="${Math.round(W*1.3)}" height="${Math.round(H*1.3)}" role="img" aria-label="${label(a)} to ${label(b)}, animated">`;
+  s+=`<rect x="${X0}" y="${Y0-(base>1?2:5)}" width="${SX*5}" height="${base>1?2:5}" fill="var(--ink)"/>`;
+  if(base>1)s+=`<text x="${X0-8}" y="${Y0+FY*.5+4}" font-size="11" font-weight="800" fill="var(--mute)" text-anchor="end">${base}fr</text>`;
+  for(let j=1;j<=nf;j++)s+=`<line x1="${X0}" y1="${Y0+j*FY}" x2="${X0+SX*5}" y2="${Y0+j*FY}" stroke="var(--tan)" stroke-width="2"/>`;
+  for(let i=0;i<6;i++)s+=`<line x1="${x(i)}" y1="${Y0}" x2="${x(i)}" y2="${Y0+nf*FY}" stroke="var(--mute)" stroke-width="${1.2+(5-i)*.25}"/>`;
+  // open / muted markers for each chord, crossfaded
+  [[a,"a"],[b,"b"]].forEach(([c,k])=>{s+=`<g class="mk" data-ph="${k}">`+CH[c].f.map((f,i)=>f<0?`<text x="${x(i)}" y="${Y0-11}" fill="var(--hot)" font-size="12" font-weight="900" text-anchor="middle">✕</text>`:f===0?`<circle cx="${x(i)}" cy="${Y0-15}" r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`:"").join("")+`</g>`});
+  // one group per finger; a barre that changes shape crossfades instead of moving
+  const dot=(f,p)=>p.length>1?`<rect x="${x(p[0].s)-11}" y="-11" width="${x(p.at(-1).s)-x(p[0].s)+22}" height="22" rx="11" fill="${col[kind[f]]}" stroke="var(--ink)" stroke-width="1.5"/><text x="${x(p[0].s)}" y="4" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">${f}</text>`
+    :`<circle r="11" fill="${col[kind[f]]}" stroke="var(--ink)" stroke-width="1.5"/>${kind[f]==="stay"?`<circle class="ring" r="16" fill="none" stroke="var(--good)" stroke-width="2.5"/>`:""}<text y="4" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">${f}</text>`;
+  const pos=p=>p?(p.length>1?`0,${y(p[0].f)}`:`${x(p[0].s)},${y(p[0].f)}`):"none";
+  for(let f=1;f<=4;f++){const p=A[f],q=B[f];if(!p&&!q)continue;
+    const same=p&&q&&p.length===q.length&&(p.length===1||kind[f]==="stay"||p.every((x,k)=>x.s===q[k].s));
+    if(same||!p||!q)s+=`<g class="fd${kind[f]==="move"||kind[f]==="slide"?" mv":""}" data-pa="${pos(p)}" data-pb="${pos(q)}"><g class="fi">${dot(f,p||q)}</g></g>`;
+    else s+=`<g class="fd" data-pa="${pos(p)}" data-pb="none"><g class="fi">${dot(f,p)}</g></g><g class="fd" data-pa="none" data-pb="${pos(q)}"><g class="fi">${dot(f,q)}</g></g>`}
+  const w=h("div","clip",`<div class="clip-l"><b data-cl="a">${esc(label(a))}</b><span>→</span><b data-cl="b">${esc(label(b))}</b></div><span class="${cfg.left?"flip":""}">${s}</svg></span>
+    <ul>${tips.map(t=>`<li>${t}</li>`).join("")}</ul><small>Green stays down · teal slides · blue lifts and moves. Tap the chart to pause.</small>`);
+  const G=[...w.querySelectorAll(".fd")];let ph="b",paused=false;
+  const show=k=>{ph=k;G.forEach(g=>{const v=g.dataset["p"+k];if(v==="none"){g.style.opacity=0}else{const[px,py]=v.split(",");g.style.transform=`translate(${px}px,${py}px)`;g.style.opacity=1}});
+    w.querySelectorAll(".mk").forEach(m=>m.style.opacity=m.dataset.ph===k?1:0);w.querySelectorAll("[data-cl]").forEach(e=>e.classList.toggle("on",e.dataset.cl===k))};
+  // start on the first shape with no animation, then flip every 2s (0.7s moving, 1.3s holding)
+  w.classList.add("still");show("a");requestAnimationFrame(()=>requestAnimationFrame(()=>w.classList.remove("still")));
+  const iv=setInterval(()=>{if(!w.isConnected){clearInterval(iv);return}if(paused)return;const mv=G.filter(g=>g.classList.contains("mv"));mv.forEach(g=>g.classList.add("lift"));setTimeout(()=>mv.forEach(g=>g.classList.remove("lift")),450);show(ph==="a"?"b":"a")},2000);
+  w.querySelector("svg").onclick=()=>{paused=!paused;w.classList.toggle("paused",paused)};
+  return w}
 const VIS={
   parts:`<svg viewBox="0 0 340 170" width="100%" style="max-width:420px" role="img" aria-label="Guitar parts">
     <path d="M40 85c0-40 30-60 60-55 20 3 30 18 50 18s30-15 50-18c30-5 40 15 40 55s-10 60-40 55c-20-3-30-18-50-18s-30 15-50 18c-30 5-60-15-60-55z" fill="var(--tan)" stroke="var(--ink)" stroke-width="3"/>
@@ -717,25 +803,34 @@ function mountStrum(el,s,done){
   const cnt=P.beats===6?["1","2","3","4","5","6"]:["1","&","2","&","3","&","4","&"],rid="bpm"+Math.random().toString(36).slice(2,7);
   el.innerHTML=`<div class="body">${s.t?s.t+"<br>":""}<b>${P.name}</b><small>${P.tip}</small></div>
    <div class="now" style="min-height:110px"><div class="cname" data-c style="font-size:52px"></div><div data-d></div></div><div class="mute" style="text-align:center;font-weight:900" data-n></div>
-   <div class="lane"><div class="slots" style="grid-template-columns:repeat(${sl},1fr)"></div><div class="counts" style="grid-template-columns:repeat(${sl},1fr)">${cnt.map(x=>`<span>${x}</span>`).join("")}</div></div>
+   <div class="strum2"><svg class="pend" viewBox="0 0 100 120" aria-hidden="true"><g class="pstr">${[0,1,2,3,4,5].map(i=>`<line x1="8" x2="92" y1="${32+i*11}" y2="${32+i*11}" stroke-width="${2.6-i*.3}"/>`).join("")}</g><g class="pick"><path d="M-13 -9h26l-13 20z" rx="3"/></g></svg>
+     <div class="lane2" style="grid-template-columns:repeat(${sl},1fr)">${strumCells(P)}</div></div>
+   <p class="mute strum-tip">Keep your hand swinging the whole time, like a pendulum. Where it says <b>miss</b>, swing past without touching the strings.</p>
    <div class="mute" style="text-align:center;font-weight:900" data-b>${bars} bars · 1 bar count-in</div><div class="mute" style="text-align:center;font-weight:900;font-size:16px" data-t></div>
    <label class="mute" for="${rid}">Speed: <b data-v>${bpm}</b> bpm</label><input type="range" id="${rid}" min="40" max="140" value="${bpm}"><div class="row"></div>`;
-  const q=k=>el.querySelector(k),slots=q(".slots"),row=q(".row");
-  [...P.slots].forEach(x=>slots.append(h("div","slot"+(x==="."?" rest":""),x==="D"?"↓":x==="U"?"↑":"·")));
+  const q=k=>el.querySelector(k),slots=q(".lane2"),row=q(".row"),pick=q(".pick"),pstr=q(".pstr");
+  // the pick swings down or up across the strings once per slot, and the strings light up when it actually hits them
+  let slotT=0,slotK=-1,flashed=true,praf=0;const mark=k=>{[...slots.children].forEach((d,j)=>d.classList.toggle("on",j===k));slotK=k;slotT=performance.now();flashed=k<0};
+  (function swing(){praf=requestAnimationFrame(swing);if(!el.isConnected){cancelAnimationFrame(praf);return}if(slotK<0){pick.setAttribute("transform","translate(50 14)");return}
+    const p=Math.min(1,(performance.now()-slotT)/ms()),e=p<.5?2*p*p:1-2*(1-p)*(1-p),dn=strumDown(P,slotK),hit=P.slots[slotK]!==".";
+    pick.setAttribute("transform",`translate(${hit?50:76} ${dn?14+92*e:106-92*e}) rotate(${dn?0:180})`);pick.classList.toggle("ghost",!hit);
+    if(hit&&!flashed&&p>.35){flashed=true;pstr.classList.remove("hit");void pstr.getBoundingClientRect();pstr.classList.add("hit")}})();
   const chordAt=b=>chords[((b%chords.length)+chords.length)%chords.length];
   const show=()=>{const c=chordAt(Math.max(bar,0));q("[data-c]").textContent=label(c);q("[data-d]").innerHTML=c==="open"?"":dia(c);q("[data-n]").textContent=chords.length>1?"Next: "+label(chordAt(Math.max(bar,0)+1)):""};show();
   const ms=()=>(P.beats===6?60000:30000)/bpm;
-  function tick(){const x=P.slots[slot],countIn=bar<0;[...slots.children].forEach((d,k)=>d.classList.toggle("on",k===slot));
+  function tick(){const x=P.slots[slot],countIn=bar<0;mark(slot);
     const beatSlot=P.beats===6?(slot===0||slot===3):slot%2===0;
     if(beatSlot&&(countIn||!micOn))click(slot===0);
-    if(x!=="."&&!countIn){if(guideOn&&!micOn)strum(chordAt(bar),x==="D");expected.push(performance.now())}
+    if(x!=="."&&!countIn){if(guideOn&&!micOn)strum(chordAt(bar),strumDown(P,slot));expected.push(performance.now())}
     slot++;if(slot>=sl){slot=0;bar++;q("[data-b]").textContent=`Bar ${Math.min(bar+1,bars)} of ${bars}`;show();
       if(bar>=bars){stop();score();row.innerHTML="";btn(row,"Again","ghost",()=>{build();start()});if(done){btn(row,"Next","big",done);autoNext(row,done,4)}ding();say(rnd(["Locked in the groove.","Bruv is nodding.","That's rhythm, that."]));addXp(3)}}}
   function score(){const tt=q("[data-t]");if(!micOn||expected.length<4){tt.textContent="";return}
     const offs=onsets.map(o=>{let b=1e9;expected.forEach(e=>{if(Math.abs(o-e)<Math.abs(b))b=o-e});return b}).filter(x=>Math.abs(x)<ms()*.9);
     if(offs.length<3){tt.textContent="I couldn't hear many strums. Strum a bit louder or move the phone closer.";return}
     const sorted=[...offs].sort((a,b)=>a-b),med=sorted[sorted.length>>1],good=offs.filter(o=>Math.abs(o-med)<80).length,pct=Math.round(good/Math.max(expected.length,offs.length)*100);
-    lastResult={type:"strum",pct};tt.textContent=`On time: ${pct}%`+(pct>=80?" 🔥":pct>=55?" (getting there)":" (try it slower)");if(pct>=80){counters.groove++;save();checkBadges()}}
+    lastResult={type:"strum",pct};typeof logHist==="function"&&logHist("strum",s.pat,pct);tt.textContent=`On time: ${pct}%`+(pct>=80?" 🔥":pct>=55?" (getting there)":" (try it slower)");if(pct>=80){counters.groove++;save();checkBadges()}
+    // speed ladder: clean at this tempo, so offer 5 bpm more
+    if(pct>=80&&bpm<140)setTimeout(()=>btn(row,`⏩ ${bpm+5} bpm`,"ghost",()=>{bpm+=5;q("input[type=range]").value=bpm;q("[data-v]").textContent=bpm;build();start()}),0)}
   async function start(){armOff&&armOff();armOff=null;ctx();slot=0;bar=-1;onsets=[];expected=[];q("[data-t]").textContent="";q("[data-b]").textContent="Count-in…";
     micOn=s.listen!==false&&await ears();if(micOn){let prev=0,lastOn=0,recent=[],good=0,bad=0;off=listen(()=>{const l=level(),t=performance.now();
       if(l>.02&&l>prev*1.8&&t-lastOn>110){onsets.push(t);lastOn=t;
@@ -746,24 +841,26 @@ function mountStrum(el,s,done){
               else{bad++;good=0;if(bad===4){say(o-med>0?"Dragging a bit. Push forward.":"Rushing. Chill, ride the click.");bad=0}}}}}}
       prev=prev*.6+l*.4})}
     busy=true;tick();timer=setInterval(tick,ms());go.textContent="■ Stop";go.classList.add("stop")}
-  function stop(){clearInterval(timer);timer=null;busy=false;off&&off();off=null;if(go){go.textContent="▶ Start";go.classList.remove("stop")}[...slots.children].forEach(d=>d.classList.remove("on"))}
+  function stop(){clearInterval(timer);timer=null;busy=false;off&&off();off=null;if(go){go.textContent="▶ Start";go.classList.remove("stop")}mark(-1)}
   // hands-free: wait for one strum, then count in
   async function arm(){if(s.listen===false||!await ears()||timer)return;q("[data-b]").textContent="🎸 Strum once when you're ready. I'll count you in.";let prev=0,quietSince=0,t0=performance.now();
     armOff=listen(()=>{const l=level(),t=performance.now();if(t-t0<800){prev=l;return}if(l>.03&&l>prev*2){armOff();armOff=null;setTimeout(()=>{if(!timer&&el.isConnected)start()},900)}prev=prev*.6+l*.4})}
   let go;function build(){row.innerHTML="";go=btn(row,"▶ Start","big",()=>timer?stop():start());
-    btn(row,"🔊 Hear it","ghost",()=>{let k=0;const c=chordAt(0);const iv=setInterval(()=>{const x=P.slots[k];if(x!==".")strum(c,x==="D");[...slots.children].forEach((d,j)=>d.classList.toggle("on",j===k));if(++k>=sl){clearInterval(iv);setTimeout(()=>[...slots.children].forEach(d=>d.classList.remove("on")),ms())}},ms())});
+    // two bars of Bruv playing it, with the pick showing the motion, before you try
+    btn(row,"🔊 Watch & listen","ghost",()=>{if(timer)return;ctx();let k=0;const c=chordAt(0),n=sl*2;const step=()=>{const j=k%sl;if(P.slots[j]!==".")strum(c,strumDown(P,j));if(P.beats===6?j%3===0:j%2===0)click(j===0);mark(j);if(++k>=n){clearInterval(iv);setTimeout(()=>mark(-1),ms())}};const iv=setInterval(step,ms());step();cleanup.push(()=>clearInterval(iv))});
     if(done&&s.skip!==false)btn(row,"Skip","ghost",done)}
   build();arm();
   q("input[type=range]").oninput=e=>{bpm=+e.target.value;q("[data-v]").textContent=bpm;if(timer){clearInterval(timer);timer=setInterval(tick,ms())}};
-  el.append(h("p","mute","With the mic on, Bruv goes quiet after the count-in and scores your timing. Without it, he strums along so you can copy him."));
+  el.append(h("p","mute","Start slow. With the mic on, Bruv goes quiet after the count-in and scores your timing; get 80% and he'll offer you 5 bpm faster. Without the mic, he strums along so you can copy him."));
+  cleanup.push(()=>cancelAnimationFrame(praf));
   cleanup.push(()=>{clearInterval(timer);off&&off();armOff&&armOff()});
 }
 
 // change race. Hands-free with the mic: strum the first chord, wait for GO, switch; rounds run back to back
 function mountRace(el,s,done){
   const pairs=s.pairs;let race=null,raf,off=null,rounds=0,goT=null,nextT=null,auto=false;const need=s.rounds||3;
-  el.innerHTML=`<div class="body"><small>Hold the first chord. On GO, switch and strum. Goal: under 2 seconds, clean.</small></div><div class="mute" style="text-align:center;font-weight:900" data-l>Get ready</div><div class="target" data-g>—</div><div class="vis" data-d></div><div class="time" data-t>0.00s</div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div><div class="best" data-b></div>`;
-  const q=k=>el.querySelector(k),row=q(".row"),ear=q(".ear"),et=q("[data-e]");
+  el.innerHTML=`<div class="body"><small>Hold the first chord. On GO, switch and strum. Goal: under 2 seconds, clean.</small></div><div class="mute" style="text-align:center;font-weight:900" data-l>Get ready</div><div class="target" data-g>—</div><div class="vis" data-d></div><div class="time" data-t>0.00s</div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div><div data-clip></div><div class="best" data-b></div>`;
+  const q=k=>el.querySelector(k),row=q(".row"),ear=q(".ear"),et=q("[data-e]"),setClip=p=>{q("[data-clip]").innerHTML="";q("[data-clip]").append(changeClip(p[0],p[1]))};setClip(pairs[0]);
   const drawB=()=>q("[data-b]").innerHTML=pairs.map(p=>{const v=bests[p.join("→")];return `<span>${label(p[0])} → ${label(p[1])}</span><b style="color:${v&&v<2?"var(--good)":"var(--ink)"}">${v?v.toFixed(2)+"s":"—"}</b>`}).join("");drawB();
   const stopListen=()=>{off&&off();off=null};
   function end(secs){cancelAnimationFrame(raf);stopListen();const k=race.p.join("→");secs=Math.max(.2,secs);lastResult={type:"race",secs};q("[data-t]").textContent=secs.toFixed(2)+"s";logRace(secs);
@@ -775,7 +872,7 @@ function mountRace(el,s,done){
     race.t=performance.now();const loop=()=>{if(!race)return;q("[data-t]").textContent=((performance.now()-race.t)/1000).toFixed(2)+"s";raf=requestAnimationFrame(loop)};loop();b.textContent="Done (if I miss it)";
     if(an){et.textContent="Listening for "+label(race.p[1])+"…";let hits=0;const tgt=race.p[1];stopListen();
       off=listen(()=>{if(!race)return;if(hears(tgt)){if(++hits>4)end((performance.now()-race.t)/1000-.08)}else hits=Math.max(0,hits-1)})}}
-  function newRound(){if(!el.isConnected)return;const p=rnd(pairs);race={p,stage:0};q("[data-l]").textContent="Hold";q("[data-g]").textContent=label(p[0]);q("[data-d]").innerHTML=dia(p[0]);q("[data-t]").textContent="0.00s";
+  function newRound(){if(!el.isConnected)return;const p=rnd(pairs);race={p,stage:0};setClip(p);q("[data-l]").textContent="Hold";q("[data-g]").textContent=label(p[0]);q("[data-d]").innerHTML=dia(p[0]);q("[data-t]").textContent="0.00s";
     if(!auto){b.textContent="Ready";strum(p[0]);return}
     b.textContent="GO now";et.textContent=`Strum ${label(p[0])} and hold it…`;let hits=0;stopListen();
     off=listen(()=>{if(!race||race.stage)return;if(hears(p[0])){if(++hits>6){stopListen();et.textContent="Nice. Wait for it…";goT=setTimeout(goNow,900+Math.random()*1600)}}else hits=Math.max(0,hits-1)})}
@@ -792,12 +889,12 @@ function mountRace(el,s,done){
 function mountOneMin(el,s,done){
   const [a,b]=s.pair,k=a+"-"+b;let n=0,t=null,left=60,shown=false,off=null,cur=null,hits=0;
   el.innerHTML=`<div class="body"><small>Switch back and forth for 60 seconds, one strum per chord. Messy doesn't count.</small></div>
-   <div class="now">${dia(a)}<div class="cname" style="font-size:36px">⇄</div>${dia(b)}</div><div class="time" data-t>60</div><div class="target" data-n style="font-size:48px">0</div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div><p class="mute" style="text-align:center" data-b>Best: ${onemin[k]??"—"}</p>`;
-  const row=el.querySelector(".row"),T=el.querySelector("[data-t]"),N=el.querySelector("[data-n]"),ear=el.querySelector(".ear"),et=el.querySelector("[data-e]");
+   <div data-clip></div><div class="time" data-t>60</div><div class="target" data-n style="font-size:48px">0</div><div class="ear" hidden><span class="dot"></span><span data-e></span></div><div class="row"></div><p class="mute" style="text-align:center" data-b>Best: ${onemin[k]??"—"}</p>`;
+  const row=el.querySelector(".row"),T=el.querySelector("[data-t]"),N=el.querySelector("[data-n]"),ear=el.querySelector(".ear"),et=el.querySelector("[data-e]");el.querySelector("[data-clip]").append(changeClip(a,b));
   const bump=()=>{n++;N.textContent=n};
   function begin(){if(t)return;ctx();click(true);n=0;N.textContent=0;left=60;T.textContent=60;go.textContent="Changed! (tap)";go.classList.add("gold");if(an)et.textContent="Go! I'm counting your changes.";
     t=setInterval(()=>{left--;T.textContent=left;if(left<=3&&left>0)click(false);if(left<=0){clearInterval(t);t=null;off&&off();off=null;click(true);go.textContent="Go again";go.classList.remove("gold");
-      lastResult={type:"onemin",n,prev:onemin[k]};const pb=onemin[k]==null||n>onemin[k];if(pb){onemin[k]=n;save();checkBadges()}el.querySelector("[data-b]").textContent="Best: "+onemin[k];say(pb?`${n} changes. New record! +5 ⭐`:`${n} changes. Record's ${onemin[k]}.`);addXp(pb?5:2);
+      lastResult={type:"onemin",n,prev:onemin[k]};typeof logHist==="function"&&logHist("om",[a,b].sort().join("-"),n);const pb=onemin[k]==null||n>onemin[k];if(pb){onemin[k]=n;save();checkBadges()}el.querySelector("[data-b]").textContent="Best: "+onemin[k];say(pb?`${n} changes. New record! +5 ⭐`:`${n} changes. Record's ${onemin[k]}.`);addXp(pb?5:2);
       if(done&&!shown){shown=true;btn(row,"Next","big",done);autoNext(row,done,5)}}},1000)}
   // listen: count a change each time the heard chord flips between a and b
   function arm(){if(!an)return;ear.hidden=false;ear.classList.add("live");et.textContent=`Strum ${label(a)} to start the clock.`;cur=null;hits=0;off&&off();
@@ -1385,6 +1482,7 @@ function tab(t){document.querySelectorAll("nav button").forEach(x=>x.setAttribut
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>tab(b.dataset.t));
 refresh();
 </script>
-<script src="studio.js?v=25"></script>
+<script src="studio.js?v=26"></script>
 <script src="revise.js?v=6"></script>
+<script src="progress.js?v=2"></script>
 </body></html>
