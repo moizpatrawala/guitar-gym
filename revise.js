@@ -69,8 +69,10 @@ function revLesson(pool,target=20){
   const spider=pool.find(i=>i.id.startsWith("notes:spider:"));if(spider)put("Warm-up",spider,.8);
   of("Chords").slice(0,10).forEach(it=>put("Chords",it,.5));
   // pinned pairs (Gym → One-minute changes → Pin) are in every recap, graded on the same card as the normal change drill
-  const fp=focus.filter(p=>p.every(c=>known[c])&&!sameChord(p[0],p[1])).map(p=>({p,id:"change:"+[...p].sort().join("-")}));
-  const fIt=fp.map(({p,id})=>({...(pool.find(i=>i.id===id)||{id,cat:"Changes",name:p.map(label).join(" ⇄ "),st:revState[id]}),step:{type:"onemin",pair:p}}));
+  const fp=focus.filter(p=>p.every(c=>CH[c])&&!sameChord(p[0],p[1])).map(p=>({p,id:"change:"+[...p].sort().join("-")}));
+  // up to 8 a recap, weakest first (newest pins win a tie), so a long pin list rotates through over a few days
+  const fIt=fp.map(({p,id})=>({...(pool.find(i=>i.id===id)||{id,cat:"Changes",name:p.map(label).join(" ⇄ "),st:revState[id]}),step:{type:"onemin",pair:p}}))
+    .map((it,k)=>({it,k,s:revStrength(it)})).sort((a,b)=>a.s-b.s||b.k-a.k).slice(0,8).sort((a,b)=>a.k-b.k).map(x=>x.it);
   fIt.forEach(it=>put("Focus pairs",it,1.2));
   const ch=of("Changes").filter(i=>!fIt.some(f=>f.id===i.id));ch.slice(0,6).forEach(it=>put("Changes",it,1.2));
   of("Strumming").slice(0,4).forEach(it=>put("Strumming",{...it,step:{...it.step,bars:8}},.8));

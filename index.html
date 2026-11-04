@@ -446,6 +446,9 @@ const CH={
   E:{f:[0,2,2,1,0,0],n:[0,2,3,1,0,0],pc:[4,8,11]},
   A:{f:[-1,0,2,2,2,0],n:[0,0,1,2,3,0],pc:[9,1,4]},
   Dm:{f:[-1,-1,0,2,3,1],n:[0,0,0,2,3,1],pc:[2,5,9]},
+  G7:{f:[3,2,0,0,0,1],n:[3,2,0,0,0,1],pc:[7,11,2,5]},
+  C7:{f:[-1,3,2,3,1,0],n:[0,3,2,4,1,0],pc:[0,4,7,10]},
+  B7:{f:[-1,2,1,2,0,2],n:[0,2,1,3,0,4],pc:[11,3,6,9]},
   Fmaj7:{f:[-1,-1,3,2,1,0],n:[0,0,3,2,1,0],pc:[5,9,0],nick:"Easy F"},
   Fmini:{f:[-1,-1,3,2,1,1],n:[0,0,3,2,1,1],pc:[5,9,0],nick:"Mini F",barre:"Your index finger lies flat across the 2 thinnest strings at fret 1. That's a mini barre."},
   F:{f:[1,3,3,2,1,1],n:[1,3,4,2,1,1],pc:[5,9,0],barre:"Your index finger lies flat across ALL six strings at fret 1. Roll it slightly onto its bony side, and keep your thumb low behind the neck."},
@@ -476,6 +479,8 @@ let known=S("known",{open:1});  // chord → true
 let bests=S("bests",{});       // "A→B" race secs
 let onemin=S("onemin",{});     // "A-B" changes in 60s
 let focus=S("focus",[["Am","E"],["Am","Dm"],["A","Dm"],["Em","D"],["C","Am"],["C","A"],["C","G"],["G","E"]]); // pinned change pairs, drilled in every recap
+// pairs pinned after the first batch: added once, so unpinning them later sticks
+if(S("focusv",1)<2){[["G7","C"],["C7","Fmaj7"],["E","B7"]].forEach(p=>{if(!focus.some(f=>[...f].sort().join()===[...p].sort().join()))focus.push(p)});W("focus",focus);W("focusv",2)}
 let badges=S("badges",{});
 let cfg=S("cfg",{left:false,goal:15,guide:true,easy:true});cfg.voice??=true;cfg.view??="chart";
 let custom=S("custom",[]);
@@ -1052,6 +1057,9 @@ const UNITS=[
   {id:"am",t:"Am",d:"C's sad cousin",steps:[...learnChord("Am","Almost the C shape, but finger 3 moves. Sounds sad."),{type:"race",pairs:[["Am","C"],["C","Am"]],rounds:3}]},
   {id:"e",t:"E",d:"Em plus one finger",steps:[...learnChord("E","It's Em with your index finger added. Bright and strong."),{type:"race",pairs:[["Em","E"],["E","Am"]],rounds:3}]},
   {id:"a",t:"A",d:"Three fingers in a row",steps:[...learnChord("A","Three fingers squeezed onto fret 2. Fiddly at first."),{type:"race",pairs:[["A","D"],["E","A"]],rounds:3},{type:"onemin",pair:["A","D"]}]},
+  {id:"g7",t:"G7",d:"G that wants to go to C",steps:[...learnChord("G7","A 7 chord adds one tense note. G7 pulls your ear straight to C."),{type:"race",pairs:[["G7","C"],["C","G7"]],rounds:3}]},
+  {id:"c7",t:"C7",d:"C that leads to F",steps:[...learnChord("C7","Your C shape plus your pinky on the G string, fret 3. It pulls towards F."),{type:"race",pairs:[["C","C7"],["C7","Fmaj7"]],rounds:3}]},
+  {id:"b7",t:"B7",d:"The four-finger one",steps:[...learnChord("B7","B7 uses all four fingers. It leads home to E and Em."),{type:"race",pairs:[["E","B7"],["B7","Em"]],rounds:3}]},
  ]},
  {t:"6 · Ears & know-how",ls:[
   {id:"majmin",t:"Major vs minor",d:"Happy vs sad",steps:[
@@ -1288,7 +1296,7 @@ function drawPractice(){const T=$("tools");T.innerHTML="";const kn=Object.keys(k
     ["⏱️","Change race","Beat your best switch",pairs.length>0,()=>runTool("Change race",el=>mountRace(el,{pairs:pairs.flatMap(p=>[p,[p[1],p[0]]])}))],
     ["6️⃣","One-minute changes","How many in 60s?",pairs.length>0,()=>runTool("One-minute changes",el=>{
       // pinned pairs come first, and the pin button adds or drops a pair from every recap
-      const pk=p=>[...p].sort().join("-"),pinned=p=>focus.some(f=>pk(f)===pk(p)),list=[...focus.filter(p=>p.every(c=>known[c])),...pairs.filter(p=>!pinned(p))];
+      const pk=p=>[...p].sort().join("-"),pinned=p=>focus.some(f=>pk(f)===pk(p)),list=[...focus.filter(p=>p.every(c=>CH[c])),...pairs.filter(p=>!pinned(p))];
       const top=h("div","row"),s=h("select","");s.setAttribute("aria-label","Chord pair");
       const opts=()=>{const v=s.value;s.innerHTML=list.map((p,i)=>`<option value="${i}">${pinned(p)?"📌 ":""}${label(p[0])} ⇄ ${label(p[1])}</option>`).join("");if(v)s.value=v};opts();
       const pin=h("button","ghost",""),drawPin=()=>pin.textContent=pinned(list[+s.value])?"📌 Pinned to recap":"Pin to recap";
@@ -1378,5 +1386,5 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>tab(b.dataset.t
 refresh();
 </script>
 <script src="studio.js?v=25"></script>
-<script src="revise.js?v=5"></script>
+<script src="revise.js?v=6"></script>
 </body></html>
