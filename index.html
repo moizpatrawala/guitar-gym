@@ -588,6 +588,13 @@ const noteName=m=>NOTES[((Math.round(m)%12)+12)%12];
 // one shared listen loop; components register a callback and get an unregister function back. It pauses while Bruv talks so his voice isn't mistaken for playing
 let loops=new Set(),talking=0;(function L(){if(performance.now()>talking)loops.forEach(fn=>{try{fn()}catch(e){}});requestAnimationFrame(L)})();
 function listen(fn){loops.add(fn);return()=>loops.delete(fn)}
+// strum onsets. A strum starts with a burst of high-frequency pick noise; the chord ringing after it is mostly low notes. So this
+// tracks the energy of the signal's slope (a rough high-pass) against its own last ~100 ms, not raw loudness, which stays high while
+// a chord rings and made every strum after the first look like nothing new
+function onsetDetector(){let base=0,noise=1,lastOn=0;
+  return()=>{an.getFloatTimeDomainData(tbuf);const n=tbuf.length;let e=0;for(let i=n-1024;i<n;i++){const d=tbuf[i]-tbuf[i-1];e+=d*d}e=Math.sqrt(e/1024);
+    const t=performance.now();noise=Math.min(noise*1.003+1e-7,Math.max(e,1e-6));
+    const hit=e>base*1.7&&e>noise*5&&e>.0008&&t-lastOn>90;if(hit)lastOn=t;base=base*.8+e*.2;return hit?t:null}}
 
 /* ================= Bruv's voice ================= */
 let voice=null,busy=false; // busy = a timed drill is running, so Bruv only shows text instead of talking over it
@@ -824,22 +831,26 @@ function mountStrum(el,s,done){
     if(x!=="."&&!countIn){if(guideOn&&!micOn)strum(chordAt(bar),strumDown(P,slot));expected.push(performance.now())}
     slot++;if(slot>=sl){slot=0;bar++;q("[data-b]").textContent=`Bar ${Math.min(bar+1,bars)} of ${bars}`;show();
       if(bar>=bars){stop();score();row.innerHTML="";btn(row,"Again","ghost",()=>{build();start()});if(done){btn(row,"Next","big",done);autoNext(row,done,4)}ding();say(rnd(["Locked in the groove.","Bruv is nodding.","That's rhythm, that."]));addXp(3)}}}
+  // timing score. The mic hears you a little late (a fixed delay), so first find that delay, then pair every strum the pattern asked
+  // for with the nearest strum heard. A strum counts as on time when it sits within 90 ms of your own steady pulse (the median of its
+  // neighbours), so slowly drifting with no click to follow isn't punished, but rushing or dragging single strums is
   function score(){const tt=q("[data-t]");if(!micOn||expected.length<4){tt.textContent="";return}
-    const offs=onsets.map(o=>{let b=1e9;expected.forEach(e=>{if(Math.abs(o-e)<Math.abs(b))b=o-e});return b}).filter(x=>Math.abs(x)<ms()*.9);
-    if(offs.length<3){tt.textContent="I couldn't hear many strums. Strum a bit louder or move the phone closer.";return}
-    const sorted=[...offs].sort((a,b)=>a-b),med=sorted[sorted.length>>1],good=offs.filter(o=>Math.abs(o-med)<80).length,pct=Math.round(good/Math.max(expected.length,offs.length)*100);
-    lastResult={type:"strum",pct};typeof logHist==="function"&&logHist("strum",s.pat,pct);tt.textContent=`On time: ${pct}%`+(pct>=80?" 🔥":pct>=55?" (getting there)":" (try it slower)");if(pct>=80){counters.groove++;save();checkBadges()}
+    const first=expected[0]-ms()*.5,last=expected.at(-1)+ms()*.9,heardO=onsets.filter(o=>o>=first&&o<=last);
+    const near=o=>{let b=1e9;expected.forEach(e=>{if(Math.abs(o-e)<Math.abs(b))b=o-e});return b},raw=heardO.map(near).sort((a,b)=>a-b),lag=raw.length?raw[raw.length>>1]:0;
+    const used=new Set(),pairs=[];expected.forEach(e=>{let bj=-1,bd=1e9;heardO.forEach((o,j)=>{if(used.has(j))return;const d=o-e-lag;if(Math.abs(d)<Math.abs(bd)&&Math.abs(d)<ms()*.5){bd=d;bj=j}});if(bj>=0){used.add(bj);pairs.push(bd)}});
+    if(pairs.length<expected.length*.4){tt.textContent=`I only heard ${pairs.length} of your ${expected.length} strums, so I can't score this one. Check Me → Settings → Microphone is the MacBook or iPhone mic (not earbuds), and keep it within a metre of the guitar.`;return}
+    const good=pairs.filter((d,i)=>{const w=pairs.slice(Math.max(0,i-4),i+5).sort((a,b)=>a-b);return Math.abs(d-w[w.length>>1])<90}).length,pct=Math.round(good/expected.length*100);
+    lastResult={type:"strum",pct};typeof logHist==="function"&&logHist("strum",s.pat,pct);tt.textContent=`On time: ${pct}%`+(pct>=80?" 🔥":pct>=55?" (getting there)":" (try it slower)")+` · heard ${pairs.length} of ${expected.length} strums`;if(pct>=80){counters.groove++;save();checkBadges()}
     // speed ladder: clean at this tempo, so offer 5 bpm more
     if(pct>=80&&bpm<140)setTimeout(()=>btn(row,`⏩ ${bpm+5} bpm`,"ghost",()=>{bpm+=5;q("input[type=range]").value=bpm;q("[data-v]").textContent=bpm;build();start()}),0)}
   async function start(){armOff&&armOff();armOff=null;ctx();slot=0;bar=-1;onsets=[];expected=[];q("[data-t]").textContent="";q("[data-b]").textContent="Count-in…";
-    micOn=s.listen!==false&&await ears();if(micOn){let prev=0,lastOn=0,recent=[],good=0,bad=0;off=listen(()=>{const l=level(),t=performance.now();
-      if(l>.02&&l>prev*1.8&&t-lastOn>110){onsets.push(t);lastOn=t;
+    micOn=s.listen!==false&&await ears();if(micOn){const det=onsetDetector();let recent=[],good=0,bad=0,heardN=0;off=listen(()=>{const t=det();
+      if(t){onsets.push(t);if(bar>=0)q("[data-t]").textContent=`🎤 Heard ${++heardN} strum${heardN>1?"s":""}`;
         // live reaction: compare this strum's offset with the player's own recent average (cancels mic latency)
         if(bar>=0&&expected.length){let o=1e9;expected.forEach(e=>{if(Math.abs(t-e)<Math.abs(o))o=t-e});
           if(Math.abs(o)<ms()*.9){recent.push(o);if(recent.length>8)recent.shift();const med=[...recent].sort((a,b)=>a-b)[recent.length>>1];
             if(recent.length>=4){if(Math.abs(o-med)<70){good++;bad=0;if(good%8===0)say(rnd(["Locked in 🔥","In the pocket.","Groovy, bruv.","That's the groove."]))}
-              else{bad++;good=0;if(bad===4){say(o-med>0?"Dragging a bit. Push forward.":"Rushing. Chill, ride the click.");bad=0}}}}}}
-      prev=prev*.6+l*.4})}
+              else{bad++;good=0;if(bad===4){say(o-med>0?"Dragging a bit. Push forward.":"Rushing. Chill, ride the click.");bad=0}}}}}}})}
     busy=true;tick();timer=setInterval(tick,ms());go.textContent="■ Stop";go.classList.add("stop")}
   function stop(){clearInterval(timer);timer=null;busy=false;off&&off();off=null;if(go){go.textContent="▶ Start";go.classList.remove("stop")}mark(-1)}
   // hands-free: wait for one strum, then count in
