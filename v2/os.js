@@ -49,12 +49,16 @@ function tick(t,hi){const a=ctx(),o=a.createOscillator(),g=a.createGain();o.freq
 
 /* ---------- sound in: the mic, pitch for the tuner, and which chord is ringing ---------- */
 let an=null,tbuf,fbuf,micDenied=false;
-async function ears(){if(an)return true;if(micDenied||!navigator.mediaDevices?.getUserMedia)return false;
-  try{const raw={echoCancellation:false,noiseSuppression:false,autoGainControl:false};let mic=await navigator.mediaDevices.getUserMedia({audio:raw});
+let micStream=null;
+async function ears(){if(an)return true;if(state.micOff||micDenied||!navigator.mediaDevices?.getUserMedia)return false;
+  try{const raw={echoCancellation:false,noiseSuppression:false,autoGainControl:false};let mic;
+    // the mic you picked in Mic check, if it's still connected
+    if(state.mic)try{mic=await navigator.mediaDevices.getUserMedia({audio:{...raw,deviceId:{exact:state.mic}}})}catch{}
+    mic=mic||await navigator.mediaDevices.getUserMedia({audio:raw});if(state.mic)micStream=mic;
     // earbud mics are built for voice and barely hear a guitar, so use the laptop or phone mic when there is one
-    if(/bluetooth|buds|airpods|headset|hands-free|beats/i.test(mic.getAudioTracks()[0]?.label||"")){const d=(await navigator.mediaDevices.enumerateDevices()).find(d=>d.kind==="audioinput"&&/iphone|ipad|built-in|macbook|internal/i.test(d.label));
+    if(!state.mic&&/bluetooth|buds|airpods|headset|hands-free|beats/i.test(mic.getAudioTracks()[0]?.label||"")){const d=(await navigator.mediaDevices.enumerateDevices()).find(d=>d.kind==="audioinput"&&/iphone|ipad|built-in|macbook|internal/i.test(d.label));
       if(d)try{const m2=await navigator.mediaDevices.getUserMedia({audio:{...raw,deviceId:{exact:d.deviceId}}});mic.getTracks().forEach(t=>t.stop());mic=m2}catch{}}
-    const a=ctx();if(a.state!=="running")await a.resume();an=a.createAnalyser();an.fftSize=8192;an.smoothingTimeConstant=0;a.createMediaStreamSource(mic).connect(an);
+    micStream=mic;const a=ctx();if(a.state!=="running")await a.resume();an=a.createAnalyser();an.fftSize=8192;an.smoothingTimeConstant=0;a.createMediaStreamSource(mic).connect(an);
     const mute=a.createGain();mute.gain.value=0;an.connect(mute).connect(a.destination);tbuf=new Float32Array(an.fftSize);fbuf=new Float32Array(an.frequencyBinCount);return true}
   catch(e){if(e?.name==="NotAllowedError")micDenied=true;return false}}
 function level(){an.getFloatTimeDomainData(tbuf);let r=0;for(let i=tbuf.length-1024;i<tbuf.length;i++)r+=tbuf[i]*tbuf[i];return Math.sqrt(r/1024)}
@@ -65,11 +69,25 @@ function pitch(){an.getFloatTimeDomainData(tbuf);const N=4096,b=tbuf.subarray(tb
   for(let l=minL+1;l<bl;l++)if(c[l]>c[l-1]&&c[l]>=c[l+1]&&c[l]>best*.93){bl=l;break}
   const a1=c[bl-1],a2=c[bl],a3=c[bl+1];return sr/(bl+((a1-a3)/(2*(a1-2*a2+a3))||0))}
 function chroma(){an.getFloatFrequencyData(fbuf);const bw=ac.sampleRate/an.fftSize,ch=new Array(12).fill(0);let tot=0;
-  for(let k=Math.floor(75/bw);k<Math.min(fbuf.length,1400/bw);k++){const m=10**(fbuf[k]/20);if(!isFinite(m))continue;const pc=((Math.round(69+12*Math.log2(k*bw/440))%12)+12)%12;ch[pc]+=m*m;tot+=m*m}
-  return tot<1e-7?null:ch.map(x=>x/tot)}
-const chordScore=(ch,c)=>{let inn=0,miss=0;CH[c].pc.forEach(p=>{inn+=ch[p];if(ch[p]<.04)miss++});return inn-.25*miss};
+  for(let k=Math.floor(75/bw);k<Math.min(fbuf.length,1400/bw);k++){const m=10**(fbuf[k]/20);if(!isFinite(m))continue;const pc=((Math.round(69+12*Math.log2(k*bw/440))%12)+12)%12;ch[pc]+=m;tot+=m}
+  return tot<1e-9?null:ch.map(x=>x/tot)}
 const samePc=(a,b)=>[...CH[a].pc].sort().join()===[...CH[b].pc].sort().join();
-function hears(c){if(level()<.006)return false;const ch=chroma();if(!ch||chordScore(ch,c)<.48)return false;let b=c,bs=-9;Object.keys(CH).forEach(k=>{const s=chordScore(ch,k);if(s>bs)bs=s,b=k});return samePc(b,c)}
+// What each shape should sound like: the exact notes its strings play, plus each string's strongest overtones.
+// Matching against that (not just the chord's note names) is what stops Em being heard as E7 or C as Cadd9.
+const TPL={};const tpl=c=>{if(TPL[c])return TPL[c];const t=new Array(12).fill(0);CH[c].f.forEach((f,i)=>{if(f<0)return;const m=OPEN_MIDI[i]+f,w=i<2?1.2:1;t[m%12]+=w;t[(m+7)%12]+=.35*w;t[(m+4)%12]+=.15*w});const n=Math.hypot(...t);return TPL[c]=t.map(q=>q/n)};
+const match=(ch,c)=>{const t=tpl(c);let d=0,n=0;for(let i=0;i<12;i++){d+=ch[i]*t[i];n+=ch[i]*ch[i]}return d/Math.sqrt(n)};
+const twin=(a,b)=>label(a)===label(b)||samePc(a,b)||tpl(a).reduce((s,v,i)=>s+v*tpl(b)[i],0)>=.93;
+const is7=c=>/7/.test(c);
+// loud enough to be playing: above this room's own background noise, which it keeps measuring
+// (the quietest moment of the last ten seconds; capped, so a song that never stops ringing can't push it up for good)
+let noiseFl=.002;const nzWin=[];let nzT=0,nzMin=1;const loud=()=>{const l=level(),t=performance.now();nzMin=Math.min(nzMin,l);
+  if(t-nzT>1000){nzT=t;nzWin.push(nzMin);nzMin=1;if(nzWin.length>10)nzWin.shift();noiseFl=Math.max(1e-5,Math.min(...nzWin))}return l>Math.min(.008,Math.max(.0022,noiseFl*3))};
+// Is chord c ringing? It has to match its own shape well, and beat every chord you might be playing instead.
+// Pass `rivals` when only a few chords are in play (a one-minute change only has to tell its two chords apart).
+// A near-twin (G7 when asked for G) counts as the chord, because a mic can't reliably hear one string's difference.
+function hears(c,rivals){if(!loud())return false;const ch=chroma();if(!ch)return false;const sc=match(ch,c);if(sc<.72)return false;
+  // 7th chords only compete when one is being asked for: otherwise E7 keeps beating the Em you're actually playing
+  return(rivals||[...MINE,"F","Bm","F#m"].filter(q=>is7(c)||!is7(q))).every(q=>q===c||twin(q,c)||match(ch,q)<sc+.04)}
 
 /* ---------- your record ---------- */
 const read=k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}};
@@ -279,7 +297,7 @@ function omc(a0,b0){let a=CH[a0]?a0:(state.lastPair||["C","G"])[0],b=CH[b0]?b0:(
     startB.textContent="Stop";L.textContent="get ready";N.textContent=3;h.innerHTML=micOn?`I'm counting by ear. Missed one? Tap the dial or press <kbd>C</kbd>.`:`No mic, so tap the dial or press <kbd>C</kbd> for each change.`;
     run={iv:setInterval(()=>{left--;if(left>60){N.textContent=left-60;return}if(left===60)L.textContent="changes";dial.style.setProperty("--t",left/60);if(left<=0)finish()},1000)};
     // a change counts when the chord that's ringing flips from one to the other and holds for a few frames
-    if(micOn)loop(()=>{if(!run||left>60)return;const c=hears(a)?a:hears(b)?b:null;if(!c){hits=0;return}if(c!==cand){cand=c;hits=1;return}if(++hits===3&&c!==cur){if(cur)bump();cur=c}})}
+    if(micOn)loop(()=>{if(!run||left>60)return;const c=hears(a,[a,b])?a:hears(b,[a,b])?b:null;if(!c){hits=0;return}if(c!==cand){cand=c;hits=1;return}if(++hits===3&&c!==cur){if(cur)bump();cur=c}})}
   const bump=()=>{if(!run)return;n++;N.textContent=n},stop=()=>{if(run){clearInterval(run.iv);run=null;startB.textContent="Start";draw()}};
   startB.onclick=()=>run?stop():start();dial.onclick=bump;onKey(e=>{if(/^(SELECT|INPUT)$/.test(e.target.tagName))return;if(e.key===" "){e.preventDefault();run?stop():start()}else if(e.key.toLowerCase()==="c")bump()});draw()}
 

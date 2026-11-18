@@ -49,7 +49,8 @@ async function playSong(id){const song=(await STU.all()).find(s=>s.id===id);if(!
     <div class="jam-f"><button class="jb" data-a="rs" aria-label="Back to start">⏮</button><button class="jb" data-a="bk" aria-label="Back 5 seconds">−5</button><button class="jb play" data-a="pp" aria-label="Play">▶</button>
       <span class="mono" data-time>0:00</span><input type="range" min="0" max="${Math.floor(song.dur)}" value="0" step=".1" data-seek aria-label="Position"><span class="mono">${fmtT(song.dur)}</span>
       <div class="seg">${[.5,.7,.85,1].map(s=>`<button data-sp="${s}">${Math.round(s*100)}%</button>`).join("")}</div>
-      <div class="seg" title="Move the words earlier or later"><button data-off="-0.1">words −</button><button data-off="0.1">words +</button></div></div></div>`),q=k=>st.querySelector(k),audio=new Audio(url),L=q("[data-lane]"),beatEv=song.beats.map(b=>({t:b}));
+      <div class="seg" title="Move the words earlier or later"><button data-off="-0.1">words −</button><button data-off="0.1">words +</button></div>
+      <div class="jam-x"><button data-wait title="W">Wait for me</button><button data-la title="L">Loop from here</button><button data-stv title="S">Stage view</button><button data-call>Bruv calls chords</button><button data-rec>● Sing over the track</button></div></div></div>`),q=k=>st.querySelector(k),audio=new Audio(url),L=q("[data-lane]"),beatEv=song.beats.map(b=>({t:b}));
   audio.preservesPitch=audio.webkitPreservesPitch=true;const seek=t=>{audio.currentTime=Math.max(0,Math.min(song.dur-.1,t))};
   const box=q("[data-lyr]");let lv;if(sh)lv=lyricsView(box,sh,ev,song.capo||0,seek);else{box.classList.add("chips");box.innerHTML=ev.map((e,k)=>`<button data-k="${k}">${esc(showName(e.c,song.capo||0))}</button>`).join("")||`<p class="hint">No chords found. Add a chord sheet in the song's details.</p>`;box.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>seek(ev[+b.dataset.k].t));
     lv=k=>{if(k===lv.k)return;lv.k=k;box.querySelectorAll(".on").forEach(x=>x.classList.remove("on"));const b=box.children[k];if(b){b.classList.add("on");b.scrollIntoView({block:"center",behavior:"smooth"})}}}
@@ -63,7 +64,26 @@ async function playSong(id){const song=(await STU.all()).find(s=>s.id===id);if(!
     if(k!==shown){shown=k;const cur=k>=0?ev[k]:ev[0],nx=ev[k+1],shp=cur&&shapeOf(cur.c,song.capo||0);q("[data-c]").textContent=cur?showName(cur.c,song.capo||0):"–";q("[data-d]").innerHTML=shp?dia(shp):`<p class="hint">Not one of your shapes yet</p>`;q("[data-nx]").textContent=nx?showName(nx.c,song.capo||0):"end"}
     const bi=evAt(beatEv,t);let s=-1;if(bi>=0&&!audio.paused){const bpb=song.bpb||4,j=bi-(((bi-(song.phase||0))%bpb)+bpb)%bpb;if(j>=0){const t0=song.beats[j],t1=song.beats[j+bpb]??t0+bpb*bp,n=PATS[pat].s.length;s=Math.min(n-1,Math.max(0,Math.floor((t-t0)/(t1-t0)*n)))}}
     if(s!==laneK){laneK=s;[...L.children].forEach((c,j)=>c.classList.toggle("on",j===s))}});
-  closers.push(()=>{audio.pause();audio.src=""});onKey(e=>{if(/^(SELECT|INPUT|TEXTAREA)$/.test(e.target.tagName)&&e.target.type!=="range")return;if(e.key===" "){e.preventDefault();toggle()}else if(e.key==="ArrowLeft")seek(audio.currentTime-5);else if(e.key==="ArrowRight")seek(audio.currentTime+5);else if(e.key==="[")nudge(-.1);else if(e.key==="]")nudge(.1)});
+  /* wait for me, looping, stage view, chord call-outs and singing over the track */
+  const capo=song.capo||0,jam=q(".jam");let wait=false,waiting=null,wHits=0,loopA=null,loopB=null,call=!!state.callChords,called=-1,rec=null;
+  const xb=k=>q(`[data-${k}]`),drawX=()=>{xb("wait").setAttribute("aria-pressed",wait);xb("call").setAttribute("aria-pressed",call);xb("stv").setAttribute("aria-pressed",jam.classList.contains("stagev"));
+    xb("la").textContent=loopA==null?"Loop from here":loopB==null?`Loop to here (from ${fmtT(loopA)})`:`Stop loop ${fmtT(loopA)}–${fmtT(loopB)}`;xb("la").setAttribute("aria-pressed",loopB!=null);xb("rec").textContent=rec?"■ Stop recording":"● Sing over the track";xb("rec").setAttribute("aria-pressed",!!rec)};
+  xb("wait").onclick=async()=>{if(!wait&&!await ears()){bruv("Wait mode needs the mic. Check it in Practice, Mic check.","sad");return}wait=!wait;waiting=null;drawX();bruv(wait?"I'll pause before each change until I hear the new chord.":"Song won't wait now. Keep up!")};
+  xb("la").onclick=()=>{const t=audio.currentTime;if(loopA==null)loopA=Math.max(0,t-.2);else if(loopB==null){if(t>loopA+1){loopB=t;seek(loopA);bruv("Looping that bit. Drop the speed until it's clean.")}}else{loopA=loopB=null}drawX()};
+  xb("stv").onclick=()=>{jam.classList.toggle("stagev");drawX()};xb("call").onclick=()=>{call=!call;state.callChords=call;save();drawX();if(call)callOut("I'll call the changes")};
+  xb("rec").onclick=async()=>{if(rec){rec.r.stop();return}let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:true}})}catch{bruv("I need the mic to record you.","sad");return}
+    const chunks=[],r=new MediaRecorder(stream),at=audio.currentTime,t0=performance.now();rec={r};r.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+    r.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());const secs=Math.round((performance.now()-t0)/1000);rec=null;drawX();audio.pause();if(secs<5)return;
+      await TAKES.put({id:"t"+Date.now().toString(36),song:song.t,songId:song.id,at,rate:speed,t:Date.now(),secs,blob:new Blob(chunks,{type:r.mimeType||"audio/webm"}),over:true});markDone("take");bruv("Saved. It's under Your takes on the Songs tab: play it with the track.","jump")};
+    r.start();audio.play().catch(()=>{});drawX();bruv("Recording. Wear earphones so the mic only hears you.","talk",true)};
+  audio.addEventListener("ended",()=>rec&&rec.r.stop());
+  loop(()=>{const t=audio.currentTime,k=evAt(ev,t),nx=ev[k+1];
+    if(loopB!=null&&t>=loopB&&!rec)seek(loopA);
+    if(call&&!audio.paused&&nx&&nx.t-t<.75*speed+.25&&nx.t>t&&called!==k+1){called=k+1;if(!k||showName(nx.c,capo)!==showName(ev[k].c,capo))callOut(sayChord(showName(nx.c,capo)))}
+    if(wait&&!rec){if(waiting){if(hears(waiting.b,waiting.a?[waiting.a,waiting.b]:undefined)){if(++wHits>=3){waiting=null;audio.play().catch(()=>{})}}else wHits=Math.max(0,wHits-1)}
+      else if(!audio.paused&&nx&&nx.t-t<.06&&nx.t>=t){const a=k>=0?shapeOf(ev[k].c,capo):null,b=shapeOf(nx.c,capo);if(b&&b!==a){audio.pause();seek(nx.t-.05);waiting={a,b};wHits=0;bruv(`${label(b)}. I'll wait.`,"talk",true)}}}});
+  closers.push(()=>{rec?.r.stop()});drawX();
+  closers.push(()=>{audio.pause();audio.src=""});onKey(e=>{if(e.key==="w"||e.key==="W")xb("wait").click();else if(e.key==="l"||e.key==="L")xb("la").click();else if(e.key==="s"||e.key==="S")xb("stv").click();if(/^(SELECT|INPUT|TEXTAREA)$/.test(e.target.tagName)&&e.target.type!=="range")return;if(e.key===" "){e.preventDefault();toggle()}else if(e.key==="ArrowLeft")seek(audio.currentTime-5);else if(e.key==="ArrowRight")seek(audio.currentTime+5);else if(e.key==="[")nudge(-.1);else if(e.key==="]")nudge(.1)});
   drawLane();drawSp();bruv(sh?"Space to play. If the words run early or late, use the bracket keys.":"Chords only for this one. Add the chord sheet in its details to get the words.")}
 
 VIEWS.songs=async v=>{const S=state.songs||{};v.innerHTML=`<span class="lbl">Your recordings, your chord sheets, played along</span><h1 class="tight title">Songs.</h1>

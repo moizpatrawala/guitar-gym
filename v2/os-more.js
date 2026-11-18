@@ -11,7 +11,7 @@ if(window.speechSynthesis){pickVoice();speechSynthesis.onvoiceschanged=pickVoice
 function bruv(t,mood="talk",quiet){brLast=t;brP.innerHTML=t;brP.hidden=!t;BR.mood=mood;BR.f=0;BR.until=performance.now()+Math.max(1800,String(t).length*55);
   brP.classList.remove("pop");void brP.offsetWidth;brP.classList.add("pop");
   // inside a tool the bubble steps aside after he's said it, so it never sits on the controls
-  clearTimeout(BR.hide);if(!$("#stage").hidden)BR.hide=setTimeout(()=>brP.hidden=true,Math.max(5000,String(t).length*75));
+  clearTimeout(BR.hide);if(!$("#stage").hidden||innerWidth<700)BR.hide=setTimeout(()=>brP.hidden=true,Math.max(5000,String(t).length*75));
   if(!quiet&&state.voice!==false&&window.speechSynthesis&&ac){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(t).replace(/<[^>]+>/g," ").replace(/[→⇄]/g," to "));if(brVoice)u.voice=brVoice;u.lang=brVoice?.lang||"en-GB";u.rate=1.05;speechSynthesis.speak(u)}catch{}}}
 brEl.querySelector("button").onclick=()=>{ctx();if(brP.hidden&&brLast)bruv(brLast);else if(!brP.hidden){brP.hidden=true;try{speechSynthesis.cancel()}catch{}}};
 const hush=()=>{try{speechSynthesis.cancel()}catch{}};
@@ -24,7 +24,8 @@ const pickOne=a=>a[Math.floor(Math.random()*a.length)];
   if(a.sing?.base!=null){const sg=a.sing,br=sg.breaks;s[4].p=!br?3:br==="sing"?2:br==="hum"?1.5:1;s[4].d=br?`Rhythm holds until you ${br}`:"Rhythm held through speak, hum and sing";
     if(sg.speak!=null){s[3].p=sg.speak<=Math.max(sg.base*1.5,.2)?2.5:1.2;s[3].d=sg.speak<=Math.max(sg.base*1.5,.2)?"Strum stays steady while you talk":"Strum wobbles when you talk"}}
   s[5].d="Not tested yet";return s}}
-const todayKey=()=>ago(0),doneToday=k=>!!(state.done?.[todayKey()]?.[k]),markDone=k=>{state.done=state.done||{};(state.done[todayKey()]=state.done[todayKey()]||{})[k]=1;save();if(k!=="tune"&&window.partDone)window.partDone(k)};
+const todayKey=()=>ago(0),doneToday=k=>!!(state.done?.[todayKey()]?.[k]);
+function markDone(k){state.done=state.done||{};(state.done[todayKey()]=state.done[todayKey()]||{})[k]=1;save();if(k!=="tune"&&window.partDone)window.partDone(k)}
 
 // today's set: built from what the app has heard, weakest things first
 function todaysSet(){const pb=pairBests(),weak=PAIRS.map(([a,b])=>({a,b,n:pb[pk(a,b)]??-1})).filter(p=>p.n<30).sort((x,y)=>x.n-y.n).slice(0,2),a=state.assess||{};
@@ -120,7 +121,7 @@ function assess(){const out={t:Date.now(),chords:{},rhythm:{},songs:{},sing:{}};
       (state.tests.chord[c]=state.tests.chord[c]||[]).push({t:Date.now(),ok:r==="ok",ms});out.chords[c]=r==="ok"?ms:null;save();B.querySelector(".aschart").classList.add(r==="ok"?"hit":"miss");H(r==="ok"?`Heard it in ${(ms/1000).toFixed(1)}s.`:r==="skip"?"Skipped.":"Didn't hear it cleanly. Moving on.");await wait(650)}
     // 2 changes
     part(2,"Changes");let j=0;for(const[a,b]of PAIRS){if(dead)return;j++;T(`${esc(label(a))} <span style="opacity:.5">⇄</span> ${esc(label(b))}`);B.innerHTML=`<b class="tight" data-left style="font-size:min(22vh,170px);line-height:.85">20</b>`;H(`Change ${j} of ${PAIRS.length}. Back and forth, one strum each, for 20 seconds.`);row.innerHTML="";if(j===1)bruv("Now the changes. Twenty seconds each. Clean beats fast.");
-      await wait(1400);let n=0,cur=null,cand=null,hits=0;const t0=performance.now();await until(()=>{B.querySelector("[data-left]").textContent=Math.max(0,Math.ceil(20-(performance.now()-t0)/1000));const c=hears(a)?a:hears(b)?b:null;if(!c){hits=0;return null}if(c!==cand){cand=c;hits=1;return null}if(++hits===3&&c!==cur){if(cur)n++;cur=c}return null},20000);if(dead)return;
+      await wait(1400);let n=0,cur=null,cand=null,hits=0;const t0=performance.now();await until(()=>{B.querySelector("[data-left]").textContent=Math.max(0,Math.ceil(20-(performance.now()-t0)/1000));const c=hears(a,[a,b])?a:hears(b,[a,b])?b:null;if(!c){hits=0;return null}if(c!==cand){cand=c;hits=1;return null}if(++hits===3&&c!==cur){if(cur)n++;cur=c}return null},20000);if(dead)return;
       (state.tests.pair[pk(a,b)]=state.tests.pair[pk(a,b)]||[]).push({t:Date.now(),n:n*3,short:true});save();H(`${n*3} a minute.`);await wait(700)}
     // 3 rhythm
     part(3,"Rhythm");for(const[k,pat,bpm,name]of[["q","downs",70,"Quarter notes"],["e","du",70,"Eighths"],["s","sixteen",56,"Sixteenths"]]){if(dead)return;const P=PATS[pat],n=P.s.length,ms=60000/bpm/(n===16?4:2);T(name);B.innerHTML=`<div class="lane" style="grid-template-columns:repeat(${n},1fr)">${lane(P)}</div>`;H(`${P.tip} One bar of clicks, then two bars on your own.`);row.innerHTML="";if(k==="q")bruv("Rhythm. I count you in, then go quiet. You keep the time.");await wait(1600);
@@ -144,8 +145,8 @@ VIEWS.songs=async v=>{const S=state.songs||{};v.innerHTML=`<span class="lbl">You
   <div class="sec-h"><h2 class="tight">Your recordings</h2><span data-libn></span></div><section class="blk"><div class="rows" data-lib><p style="color:var(--ink2)">Looking for songs you've added…</p></div></section>
   <p class="lbl" style="margin-top:14px;line-height:1.7">Play-along with synced words still opens in the classic player while it's rebuilt here.</p>`;
   const lib=await libSongs(),L=v.querySelector("[data-lib]");if(!L)return;v.querySelector("[data-libn]").textContent=lib.length?`${lib.length} added`:"";
-  L.innerHTML=lib.length?lib.map(s=>`<div class="row"><span><b>${esc(s.t||"Untitled")}</b><small>${esc(s.a||"Your song")}${s.bpm?` · ${Math.round(s.bpm)} bpm`:""}${s.capo?` · capo ${s.capo}`:""}</small></span><span style="display:flex;gap:8px"><button class="btn ghost" style="background:var(--fog);color:var(--ink);padding:10px 16px;font-size:14px" data-tool="songcheck" data-a="${esc(s.t||"Your song")}">Check</button><a class="btn" style="background:var(--ink);color:#fff;padding:10px 16px;font-size:14px;text-decoration:none" href="../index.html">Play along</a></span></div>`).join("")
-    :`<p style="color:var(--ink2)">No recordings on this device yet. Add a song's audio in the <a href="../index.html" style="color:var(--cobalt)">classic player</a> and it appears here. Sailor Song needs adding this way.</p>`};
+  L.innerHTML=lib.length?lib.map(s=>`<div class="row"><span><b>${esc(s.t||"Untitled")}</b><small>${esc(s.a||"Your song")}${s.bpm?` · ${Math.round(s.bpm)} bpm`:""}${s.capo?` · capo ${s.capo}`:""}</small></span><span style="display:flex;gap:8px"><button class="btn ghost" style="background:var(--fog);color:var(--ink);padding:10px 16px;font-size:14px" data-tool="songcheck" data-a="${esc(s.t||"Your song")}">Check</button><a class="btn" style="background:var(--ink);color:#fff;padding:10px 16px;font-size:14px;text-decoration:none" href="../classic.html">Play along</a></span></div>`).join("")
+    :`<p style="color:var(--ink2)">No recordings on this device yet. Add a song's audio in the <a href="../classic.html" style="color:var(--cobalt)">classic player</a> and it appears here. Sailor Song needs adding this way.</p>`};
 
 /* ---------- you ---------- */
 VIEWS.you=v=>{const s=OLD.stats,days=[...Array(14)].map((_,i)=>{const d=ago(13-i);return{d,m:(s.mins?.[d]||0)+(state.days[d]||0)}}),mx=Math.max(20,...days.map(d=>d.m)),tot=Math.round(((s.totalSec||0)/60+Object.values(state.days).reduce((a,b)=>a+b,0))/6)/10,pb=Object.entries(pairBests()).sort((a,b)=>b[1]-a[1]);
